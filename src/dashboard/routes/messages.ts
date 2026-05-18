@@ -3,12 +3,14 @@ import z from 'zod';
 import { eq } from 'drizzle-orm';
 import {
   getMessages,
+  searchMessages,
   getMessageEdits,
   getMessageReactions,
 } from '@/database/queries.js';
 import { db } from '@/database/index.js';
 import { attachments, messages, users } from '@/database/schema.js';
 import { logger } from '@/utils/logger.js';
+import type { Filter } from '@/shared/filters.js';
 
 const router = Router();
 
@@ -32,11 +34,40 @@ router.get('/', async (req, res, next) => {
       authorId: query.author,
       before: query.before ? new Date(query.before) : undefined,
       after: query.after ? new Date(query.after) : undefined,
-      search: query.search,
     };
     const pagination = { limit: query.limit, cursor: query.cursor };
-    const { data, nextCursor } = getMessages(filters, pagination);
-    res.json({ data, nextCursor });
+
+    if (query.search) {
+      const searchFilters: Filter = {
+        combinator: 'and',
+        filters: [],
+      };
+      if (filters.guildId) {
+        searchFilters.filters.push({ field: 'guildId', op: 'eq', value: filters.guildId });
+      }
+      if (filters.channelId) {
+        searchFilters.filters.push({ field: 'channelId', op: 'eq', value: filters.channelId });
+      }
+      if (filters.authorId) {
+        searchFilters.filters.push({ field: 'authorId', op: 'eq', value: filters.authorId });
+      }
+      if (filters.before) {
+        searchFilters.filters.push({ field: 'createdAt', op: 'lt', value: filters.before });
+      }
+      if (filters.after) {
+        searchFilters.filters.push({ field: 'createdAt', op: 'gt', value: filters.after });
+      }
+
+      const { data, nextCursor } = searchMessages(
+        query.search,
+        searchFilters.filters.length > 0 ? searchFilters : undefined,
+        pagination
+      );
+      res.json({ data, nextCursor });
+    } else {
+      const { data, nextCursor } = getMessages(filters, pagination);
+      res.json({ data, nextCursor });
+    }
   } catch (err) {
     if (err instanceof z.ZodError) {
       res.status(400).json({ error: err.errors });
