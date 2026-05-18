@@ -42,16 +42,18 @@ function likeEndsWith(column: any, value: string): SQL {
 }
 
 function sanitizeFtsQuery(q: string): string {
-  return q
-    .trim()
-    .split(/\s+/)
-    .map((token) => {
-      const hasPrefix = token.endsWith('*');
-      const clean = hasPrefix ? token.slice(0, -1) : token;
-      const escaped = clean.replace(/"/g, '""');
-      return `"${escaped}"${hasPrefix ? '*' : ''}`;
-    })
-    .join(' ');
+  const tokens: string[] = [];
+  const regex = /"([^"]*)"|(\S+)/g;
+  let match;
+  while ((match = regex.exec(q)) !== null) {
+    const raw = match[1] ?? match[2];
+    const hasPrefix = raw.endsWith('*');
+    const clean = hasPrefix ? raw.slice(0, -1) : raw;
+    if (clean.length === 0) continue;
+    const escaped = clean.replace(/"/g, '""');
+    tokens.push(`"${escaped}"${hasPrefix ? '*' : ''}`);
+  }
+  return tokens.join(' ');
 }
 
 /* ------------------------------------------------------------------ */

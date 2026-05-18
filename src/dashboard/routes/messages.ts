@@ -10,6 +10,7 @@ import {
 import { db } from '@/database/index.js';
 import { attachments, messages, users } from '@/database/schema.js';
 import { logger } from '@/utils/logger.js';
+import type { Filter } from '@/shared/filters.js';
 
 const router = Router();
 
@@ -37,7 +38,31 @@ router.get('/', async (req, res, next) => {
     const pagination = { limit: query.limit, cursor: query.cursor };
 
     if (query.search) {
-      const { data, nextCursor } = searchMessages(query.search, undefined, pagination);
+      const searchFilters: Filter = {
+        combinator: 'and',
+        filters: [],
+      };
+      if (filters.guildId) {
+        searchFilters.filters.push({ field: 'guildId', op: 'eq', value: filters.guildId });
+      }
+      if (filters.channelId) {
+        searchFilters.filters.push({ field: 'channelId', op: 'eq', value: filters.channelId });
+      }
+      if (filters.authorId) {
+        searchFilters.filters.push({ field: 'authorId', op: 'eq', value: filters.authorId });
+      }
+      if (filters.before) {
+        searchFilters.filters.push({ field: 'createdAt', op: 'lt', value: filters.before });
+      }
+      if (filters.after) {
+        searchFilters.filters.push({ field: 'createdAt', op: 'gt', value: filters.after });
+      }
+
+      const { data, nextCursor } = searchMessages(
+        query.search,
+        searchFilters.filters.length > 0 ? searchFilters : undefined,
+        pagination
+      );
       res.json({ data, nextCursor });
     } else {
       const { data, nextCursor } = getMessages(filters, pagination);
