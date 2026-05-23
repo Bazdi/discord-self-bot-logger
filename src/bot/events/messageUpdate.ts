@@ -8,6 +8,15 @@ async function onMessageUpdate(client: Client, _db: any, oldMessage: Message | P
   try {
     const guildId = newMessage.guildId ?? null;
     const channelId = newMessage.channelId;
+
+    // Discord fires messageUpdate for many reasons (embeds loading, reactions, flags, etc.)
+    // Only treat it as an edit if the message content actually changed.
+    const oldContent = oldMessage.content ?? null;
+    const newContent = newMessage.content ?? '';
+    if (oldContent === newContent) {
+      return;
+    }
+
     const editedAt = newMessage.editedTimestamp
       ? Math.floor(newMessage.editedTimestamp / 1000)
       : Math.floor(Date.now() / 1000);
@@ -24,7 +33,7 @@ async function onMessageUpdate(client: Client, _db: any, oldMessage: Message | P
       sqlite.prepare(`
         INSERT INTO message_edits (message_id, old_content, new_content, edited_at)
         VALUES (?, ?, ?, ?)
-      `).run(newMessage.id, oldMessage.content ?? null, newMessage.content ?? '', editedAt);
+      `).run(newMessage.id, oldContent, newContent, editedAt);
     } catch (err) {
       logger.error({ err }, 'Failed to insert message edit');
     }
