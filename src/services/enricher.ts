@@ -39,8 +39,8 @@ class SimpleLRU<T> {
   constructor(private maxSize: number) {}
 
   get(key: string): T | undefined {
-    const value = this.cache.get(key);
-    if (value === undefined) return undefined;
+    if (!this.cache.has(key)) return undefined;
+    const value = this.cache.get(key)!;
     // Promote to newest by re-inserting
     this.cache.delete(key);
     this.cache.set(key, value);
@@ -50,7 +50,7 @@ class SimpleLRU<T> {
   set(key: string, value: T): void {
     if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
       const oldestKey = this.cache.keys().next().value;
-      if (oldestKey) this.cache.delete(oldestKey);
+      if (oldestKey !== undefined) this.cache.delete(oldestKey);
     }
     this.cache.delete(key);
     this.cache.set(key, value);

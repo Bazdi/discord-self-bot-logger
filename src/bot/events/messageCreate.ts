@@ -4,7 +4,6 @@ import { logger } from '../../utils/logger.js';
 import { requireGuild } from '../guildFilter.js';
 import { emitMessageNew } from '../../dashboard/socket/broadcaster.js';
 import { downloadAttachment } from '../../services/attachmentDownloader.js';
-import { AsyncQueue } from '../../utils/rateLimit.js';
 import {
   enrichUser,
   enrichChannel,
@@ -12,10 +11,7 @@ import {
   ensureGuild,
 } from '../../services/enricher.js';
 
-const messageQueue = new AsyncQueue();
-
 async function onMessageCreate(client: Client, _db: any, message: Message) {
-  await messageQueue.add(async () => {
     try {
       const isDm = !message.guildId;
       const guildId = message.guildId ?? null;
@@ -160,7 +156,6 @@ async function onMessageCreate(client: Client, _db: any, message: Message) {
     } catch (err) {
       logger.error({ err }, 'Error in messageCreate handler');
     }
-  }, 100);
 }
 
 export const handleMessageCreate = requireGuild(onMessageCreate);
