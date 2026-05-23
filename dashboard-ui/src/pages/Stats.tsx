@@ -80,10 +80,13 @@ export default function Stats() {
 
   const dailyData = useMemo(
     () =>
-      (stats?.dailyCounts ?? []).map((item) => ({
-        date: formatShortDate(item.day),
-        count: item.count,
-      })),
+      (stats?.dailyCounts ?? [])
+        .slice()
+        .sort((a, b) => a.day.localeCompare(b.day))
+        .map((item) => ({
+          date: formatShortDate(item.day),
+          count: item.count,
+        })),
     [stats],
   );
 
