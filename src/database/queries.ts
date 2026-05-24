@@ -680,7 +680,7 @@ export function getOverviewStats(days: number = 30): OverviewStats {
     db.all<{ count: number }>(sql`SELECT count(*) AS count FROM users`)[0]?.count ?? 0;
 
   const dailyCounts = db.all<{ day: string; count: number }>(sql`
-    SELECT date(created_at, 'unixepoch') AS day, count(*) AS count
+    SELECT date(created_at, 'unixepoch', 'localtime') AS day, count(*) AS count
     FROM messages
     WHERE created_at >= ${sinceSec}
     GROUP BY day
@@ -828,7 +828,7 @@ export function suggestField(
 export function getDailyMessageCounts(days: number = 30): { day: string; count: number }[] {
   const sinceSec = Math.floor((Date.now() - days * 24 * 60 * 60 * 1000) / 1000);
   return db.all<{ day: string; count: number }>(sql`
-    SELECT date(created_at, 'unixepoch') AS day, count(*) AS count
+    SELECT date(created_at, 'unixepoch', 'localtime') AS day, count(*) AS count
     FROM messages
     WHERE created_at >= ${sinceSec}
     GROUP BY day
