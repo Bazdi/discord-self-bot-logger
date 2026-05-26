@@ -21,8 +21,11 @@ client.once('ready', () => {
   }));
   logger.info({ guilds: guildList }, 'Guild discovery list');
 
-  // Persist all known guilds with member counts so the dashboard shows real data
+  const allowedGuilds = config.logging.guilds;
   for (const g of client.guilds.cache.values()) {
+    if (allowedGuilds.length > 0 && !allowedGuilds.includes(g.id)) {
+      continue;
+    }
     enrichGuild({
       id: g.id,
       name: g.name,
