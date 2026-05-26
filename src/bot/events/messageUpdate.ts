@@ -47,6 +47,7 @@ async function onMessageUpdate(client: Client, _db: any, oldMessage: Message | P
           name: newMessage.guild.name,
           iconURL: newMessage.guild.iconURL.bind(newMessage.guild) as any,
           ownerId: newMessage.guild.ownerId,
+          memberCount: newMessage.guild.memberCount,
           joinedAt: newMessage.guild.joinedAt,
         });
       } else {

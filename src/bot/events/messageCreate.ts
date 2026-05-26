@@ -37,6 +37,7 @@ async function onMessageCreate(client: Client, _db: any, message: Message) {
             name: message.guild.name,
             iconURL: message.guild.iconURL.bind(message.guild) as any,
             ownerId: message.guild.ownerId,
+            memberCount: message.guild.memberCount,
             joinedAt: message.guild.joinedAt,
           });
         } else {

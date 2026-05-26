@@ -10,6 +10,7 @@ export const guilds = sqliteTable('guilds', {
   name: text('name').notNull(),
   iconUrl: text('icon_url'),
   ownerId: text('owner_id'),
+  memberCount: integer('member_count'),
   joinedAt: integer('joined_at', { mode: 'timestamp' }),
   configuredAt: integer('configured_at', { mode: 'timestamp' }),
 });

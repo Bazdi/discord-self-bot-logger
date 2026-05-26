@@ -156,11 +156,19 @@ async function onGuildUpdate(client: Client, _db: any, oldGuild: Guild, newGuild
     if (oldGuild.name !== newGuild.name) changes.name = { old: oldGuild.name, new: newGuild.name };
     if (oldGuild.icon !== newGuild.icon) changes.icon = { old: oldGuild.icon, new: newGuild.icon };
     if (oldGuild.ownerId !== newGuild.ownerId) changes.ownerId = { old: oldGuild.ownerId, new: newGuild.ownerId };
+    if (oldGuild.memberCount !== newGuild.memberCount) changes.memberCount = { old: oldGuild.memberCount, new: newGuild.memberCount };
 
     sqlite.prepare(`
       INSERT INTO guild_audit (guild_id, action_type, target_id, target_type, user_id, changes_json, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(guildId, 'GUILD_UPDATE', guildId, 'GUILD', null, JSON.stringify(changes), createdAt);
+
+    // Update guilds table with latest metadata
+    sqlite.prepare(`
+      UPDATE guilds
+      SET name = ?, icon_url = ?, owner_id = ?, member_count = ?
+      WHERE id = ?
+    `).run(newGuild.name, newGuild.iconURL() ?? null, newGuild.ownerId, newGuild.memberCount, guildId);
 
     broadcaster.toGuild(guildId, 'guild:audit', { guildId, actionType: 'GUILD_UPDATE', changes, createdAt });
   } catch (err) {

@@ -7,8 +7,8 @@ const router = Router();
 
 router.get('/', async (_req, res, next) => {
   try {
-    const rows = db.all<{ id: string; name: string; iconUrl: string | null; messageCount: number }>(sql`
-      SELECT g.id, g.name, g.icon_url AS iconUrl, count(m.id) AS messageCount
+    const rows = db.all<{ id: string; name: string; iconUrl: string | null; memberCount: number | null; messageCount: number }>(sql`
+      SELECT g.id, g.name, g.icon_url AS iconUrl, g.member_count AS memberCount, count(m.id) AS messageCount
       FROM guilds g
       LEFT JOIN messages m ON m.guild_id = g.id
       GROUP BY g.id
@@ -21,7 +21,7 @@ router.get('/', async (_req, res, next) => {
         name: g.name,
         icon: g.iconUrl,
         messageCount: g.messageCount,
-        memberCount: 0,
+        memberCount: g.memberCount ?? 0,
       }))
     );
   } catch (err) {
@@ -32,8 +32,8 @@ router.get('/', async (_req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
-    const rows = db.all<{ id: string; name: string; iconUrl: string | null; messageCount: number }>(sql`
-      SELECT g.id, g.name, g.icon_url AS iconUrl, count(m.id) AS messageCount
+    const rows = db.all<{ id: string; name: string; iconUrl: string | null; memberCount: number | null; messageCount: number }>(sql`
+      SELECT g.id, g.name, g.icon_url AS iconUrl, g.member_count AS memberCount, count(m.id) AS messageCount
       FROM guilds g
       LEFT JOIN messages m ON m.guild_id = g.id
       WHERE g.id = ${req.params.id}
@@ -51,7 +51,7 @@ router.get('/:id', async (req, res, next) => {
       name: g.name,
       icon: g.iconUrl,
       messageCount: g.messageCount,
-      memberCount: 0,
+      memberCount: g.memberCount ?? 0,
     });
   } catch (err) {
     logger.error(err, 'Failed to fetch guild');
