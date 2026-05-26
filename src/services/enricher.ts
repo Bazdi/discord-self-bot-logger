@@ -24,6 +24,7 @@ export interface DiscordGuild {
   name: string;
   iconURL?: (options?: { size?: number }) => string | null;
   ownerId: string;
+  memberCount?: number;
   joinedAt: Date | null;
 }
 
@@ -83,18 +84,19 @@ const upsertChannelStmt = sqlite.prepare(`
 `);
 
 const upsertGuildStmt = sqlite.prepare(`
-  INSERT INTO guilds (id, name, icon_url, owner_id, joined_at, configured_at)
-  VALUES (?, ?, ?, ?, ?, ?)
+  INSERT INTO guilds (id, name, icon_url, owner_id, member_count, joined_at, configured_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT(id) DO UPDATE SET
     name = excluded.name,
     icon_url = excluded.icon_url,
     owner_id = excluded.owner_id,
+    member_count = excluded.member_count,
     joined_at = excluded.joined_at
 `);
 
 const ensureGuildStmt = sqlite.prepare(`
-  INSERT INTO guilds (id, name, icon_url, owner_id, joined_at, configured_at)
-  VALUES (?, ?, ?, ?, ?, ?)
+  INSERT INTO guilds (id, name, icon_url, owner_id, member_count, joined_at, configured_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT(id) DO NOTHING
 `);
 
@@ -149,6 +151,7 @@ export function enrichGuild(guild: DiscordGuild): void {
       guild.name,
       iconUrl,
       guild.ownerId,
+      guild.memberCount ?? null,
       joinedAt,
       Math.floor(Date.now() / 1000)
     );
@@ -162,7 +165,7 @@ export function ensureGuild(guildId: string): void {
   if (guildCache.get(guildId)) return;
 
   try {
-    ensureGuildStmt.run(guildId, 'Unknown Guild', null, null, null, Math.floor(Date.now() / 1000));
+    ensureGuildStmt.run(guildId, 'Unknown Guild', null, null, null, null, Math.floor(Date.now() / 1000));
     guildCache.set(guildId, 'placeholder');
   } catch (err) {
     logger.error({ guildId, err }, 'Failed to ensure guild placeholder');
