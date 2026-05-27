@@ -212,7 +212,15 @@ function UserCell({
   username?: string | null;
   avatarUrl?: string | null;
 }) {
-  const displayName = username ? `@${username}` : userId;
+  if (!username) {
+    return (
+      <span className="truncate text-sm text-muted-foreground">
+        {userId}
+      </span>
+    );
+  }
+
+  const displayName = `@${username}`;
   const fallback = displayName.slice(0, 2).toUpperCase();
   return (
     <div className="flex items-center gap-2 min-w-0">
