@@ -907,7 +907,21 @@ export function getMemberEvents(
   if (userId) conditions.push(eq(schema.memberEvents.userId, userId));
   if (eventType) conditions.push(eq(schema.memberEvents.eventType, eventType));
 
-  let query = db.select().from(schema.memberEvents).$dynamic();
+  let query = db
+    .select({
+      id: schema.memberEvents.id,
+      guildId: schema.memberEvents.guildId,
+      userId: schema.memberEvents.userId,
+      eventType: schema.memberEvents.eventType,
+      oldValue: schema.memberEvents.oldValue,
+      newValue: schema.memberEvents.newValue,
+      createdAt: schema.memberEvents.createdAt,
+      username: schema.users.username,
+      avatarUrl: schema.users.avatarUrl,
+    })
+    .from(schema.memberEvents)
+    .leftJoin(schema.users, eq(schema.users.id, schema.memberEvents.userId))
+    .$dynamic();
   if (conditions.length > 0) query = query.where(and(...conditions));
   return query.orderBy(desc(schema.memberEvents.createdAt)).limit(limit).all();
 }
@@ -921,7 +935,22 @@ export function getVoiceEvents(
   if (guildId) conditions.push(eq(schema.voiceEvents.guildId, guildId));
   if (userId) conditions.push(eq(schema.voiceEvents.userId, userId));
 
-  let query = db.select().from(schema.voiceEvents).$dynamic();
+  let query = db
+    .select({
+      id: schema.voiceEvents.id,
+      guildId: schema.voiceEvents.guildId,
+      userId: schema.voiceEvents.userId,
+      channelId: schema.voiceEvents.channelId,
+      eventType: schema.voiceEvents.eventType,
+      oldValue: schema.voiceEvents.oldValue,
+      newValue: schema.voiceEvents.newValue,
+      createdAt: schema.voiceEvents.createdAt,
+      username: schema.users.username,
+      avatarUrl: schema.users.avatarUrl,
+    })
+    .from(schema.voiceEvents)
+    .leftJoin(schema.users, eq(schema.users.id, schema.voiceEvents.userId))
+    .$dynamic();
   if (conditions.length > 0) query = query.where(and(...conditions));
   return query.orderBy(desc(schema.voiceEvents.createdAt)).limit(limit).all();
 }
@@ -935,7 +964,20 @@ export function getPresenceUpdates(
   if (guildId) conditions.push(eq(schema.presenceUpdates.guildId, guildId));
   if (userId) conditions.push(eq(schema.presenceUpdates.userId, userId));
 
-  let query = db.select().from(schema.presenceUpdates).$dynamic();
+  let query = db
+    .select({
+      id: schema.presenceUpdates.id,
+      guildId: schema.presenceUpdates.guildId,
+      userId: schema.presenceUpdates.userId,
+      status: schema.presenceUpdates.status,
+      clientStatus: schema.presenceUpdates.clientStatus,
+      updatedAt: schema.presenceUpdates.updatedAt,
+      username: schema.users.username,
+      avatarUrl: schema.users.avatarUrl,
+    })
+    .from(schema.presenceUpdates)
+    .leftJoin(schema.users, eq(schema.users.id, schema.presenceUpdates.userId))
+    .$dynamic();
   if (conditions.length > 0) query = query.where(and(...conditions));
   return query.orderBy(desc(schema.presenceUpdates.updatedAt)).limit(limit).all();
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Inbox, Mic, Radio, ShieldAlert, Users } from 'lucide-react';
 import apiClient from '../api/client';
 import { formatDateTime, type TimestampValue } from '../utils/datetime';
@@ -21,6 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 type ActivityTab = 'members' | 'voice' | 'presence' | 'audit';
 
@@ -32,6 +33,8 @@ interface MemberEvent {
   oldValue?: string | null;
   newValue?: string | null;
   createdAt: TimestampValue;
+  username?: string | null;
+  avatarUrl?: string | null;
 }
 
 interface VoiceEvent {
@@ -43,6 +46,8 @@ interface VoiceEvent {
   oldValue?: string | null;
   newValue?: string | null;
   createdAt: TimestampValue;
+  username?: string | null;
+  avatarUrl?: string | null;
 }
 
 interface PresenceEvent {
@@ -52,6 +57,8 @@ interface PresenceEvent {
   status?: string | null;
   clientStatus?: string | null;
   updatedAt: TimestampValue;
+  username?: string | null;
+  avatarUrl?: string | null;
 }
 
 interface AuditEvent {
@@ -196,6 +203,33 @@ function StatusDot({ status }: { status?: string | null }) {
   return <span className={`inline-block size-2 shrink-0 rounded-full ${color}`} />;
 }
 
+function UserCell({
+  userId,
+  username,
+  avatarUrl,
+}: {
+  userId: string;
+  username?: string | null;
+  avatarUrl?: string | null;
+}) {
+  const displayName = username ? `@${username}` : userId;
+  const fallback = displayName.slice(0, 2).toUpperCase();
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <Avatar className="size-5 shrink-0">
+        <AvatarImage src={avatarUrl ?? undefined} alt={displayName} />
+        <AvatarFallback className="text-[10px]">{fallback}</AvatarFallback>
+      </Avatar>
+      <Link
+        to={`/users/${userId}`}
+        className="truncate text-sm font-medium hover:underline"
+      >
+        {displayName}
+      </Link>
+    </div>
+  );
+}
+
 // ─── Table panels ───────────────────────────────────────────────────────────────
 
 function MemberTable({ data, loading }: { data: MemberEvent[]; loading: boolean }) {
@@ -230,8 +264,12 @@ function MemberTable({ data, loading }: { data: MemberEvent[]; loading: boolean 
                       {row.eventType}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {row.userId}
+                  <TableCell>
+                    <UserCell
+                      userId={row.userId}
+                      username={row.username}
+                      avatarUrl={row.avatarUrl}
+                    />
                   </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
                     {row.guildId}
@@ -281,8 +319,12 @@ function VoiceTable({ data, loading }: { data: VoiceEvent[]; loading: boolean })
                       {row.eventType}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {row.userId}
+                  <TableCell>
+                    <UserCell
+                      userId={row.userId}
+                      username={row.username}
+                      avatarUrl={row.avatarUrl}
+                    />
                   </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
                     {row.channelId ?? <span className="text-muted-foreground/40">—</span>}
@@ -327,8 +369,12 @@ function PresenceTable({ data, loading }: { data: PresenceEvent[]; loading: bool
             <TableBody>
               {data.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {row.userId}
+                  <TableCell>
+                    <UserCell
+                      userId={row.userId}
+                      username={row.username}
+                      avatarUrl={row.avatarUrl}
+                    />
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
