@@ -109,14 +109,6 @@ export default function Search() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {parsedQuery.normalizedQuery ? (
-                  <Badge
-                    variant="outline"
-                    className="rounded-md px-2 py-1 text-xs font-medium"
-                  >
-                    {parsedQuery.normalizedQuery}
-                  </Badge>
-                ) : null}
                 {parsedQuery.chips.map((chip) => (
                   <Badge
                     key={chip}
@@ -129,27 +121,6 @@ export default function Search() {
               </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <div className="grid gap-3 text-sm text-muted-foreground md:grid-cols-3">
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <p className="font-medium text-foreground">Channel</p>
-                  <p>Use `in:1234567890` to scope results to one channel.</p>
-                </div>
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <p className="font-medium text-foreground">Author</p>
-                  <p>
-                    Use `from:1234567890` or `from:username` to filter by one
-                    user.
-                  </p>
-                </div>
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <p className="font-medium text-foreground">Flags</p>
-                  <p>
-                    Try `has:file`, `has:embed`, `is:edited`, or `is:deleted`.
-                  </p>
-                </div>
-              </div>
-              <Separator />
-
               <div className="flex flex-col gap-2">
                 {results.map((msg) => (
                   <Link

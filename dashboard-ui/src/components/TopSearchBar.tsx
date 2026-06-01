@@ -51,9 +51,6 @@ export function TopSearchBar() {
       <SheetContent side="top" className="mx-auto flex w-full max-w-4xl flex-col gap-4 border-x border-b px-4 pb-6 pt-12 sm:px-6">
         <SheetHeader className="gap-1">
           <SheetTitle>Search messages</SheetTitle>
-          <SheetDescription>
-            Use Discord-style filters like `from:`, `in:`, `server:`, `has:` and `is:`. Misspelled filter names are autocorrected.
-          </SheetDescription>
         </SheetHeader>
 
         <div className="flex gap-2">
@@ -83,16 +80,7 @@ export function TopSearchBar() {
                 {chip}
               </Badge>
             ))
-          ) : (
-            <Badge variant="outline" className="rounded-md px-2 py-1 text-xs text-muted-foreground">
-              Free text search
-            </Badge>
-          )}
-        </div>
-
-        <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-          <p>`hello in:1241473215264460885` searches for hello in one channel.</p>
-          <p>`deploy from:username has:file is:edited` combines text and filters.</p>
+          ) : null}
         </div>
       </SheetContent>
     </Sheet>

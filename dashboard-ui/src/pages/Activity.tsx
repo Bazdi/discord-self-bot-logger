@@ -1,17 +1,17 @@
-import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { Inbox, Mic, Radio, ShieldAlert, Users } from 'lucide-react';
-import apiClient from '../api/client';
-import { formatDateTime, type TimestampValue } from '../utils/datetime';
-import { Badge } from '@/components/ui/badge';
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Inbox, Mic, Radio, ShieldAlert, Users } from "lucide-react";
+import apiClient from "../api/client";
+import { formatDateTime, type TimestampValue } from "../utils/datetime";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -19,11 +19,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
-type ActivityTab = 'members' | 'voice' | 'presence' | 'audit';
+type ActivityTab = "members" | "voice" | "presence" | "audit";
 
 interface MemberEvent {
   id: number;
@@ -74,7 +74,7 @@ interface AuditEvent {
 
 export default function Activity() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = (searchParams.get('tab') as ActivityTab) || 'members';
+  const tab = (searchParams.get("tab") as ActivityTab) || "members";
   const [members, setMembers] = useState<MemberEvent[]>([]);
   const [voice, setVoice] = useState<VoiceEvent[]>([]);
   const [presence, setPresence] = useState<PresenceEvent[]>([]);
@@ -85,10 +85,18 @@ export default function Activity() {
     async function fetchAll() {
       try {
         const [mRes, vRes, pRes, aRes] = await Promise.all([
-          apiClient.get<MemberEvent[]>('/activity/member-events?limit=50').catch(() => ({ data: [] })),
-          apiClient.get<VoiceEvent[]>('/activity/voice?limit=50').catch(() => ({ data: [] })),
-          apiClient.get<PresenceEvent[]>('/activity/presence?limit=50').catch(() => ({ data: [] })),
-          apiClient.get<AuditEvent[]>('/activity/audit?limit=50').catch(() => ({ data: [] })),
+          apiClient
+            .get<MemberEvent[]>("/activity/member-events?limit=50")
+            .catch(() => ({ data: [] })),
+          apiClient
+            .get<VoiceEvent[]>("/activity/voice?limit=50")
+            .catch(() => ({ data: [] })),
+          apiClient
+            .get<PresenceEvent[]>("/activity/presence?limit=50")
+            .catch(() => ({ data: [] })),
+          apiClient
+            .get<AuditEvent[]>("/activity/audit?limit=50")
+            .catch(() => ({ data: [] })),
         ]);
         setMembers(mRes.data);
         setVoice(vRes.data);
@@ -106,9 +114,12 @@ export default function Activity() {
   return (
     <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Activity Explorer</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Activity Explorer
+        </h1>
         <p className="text-sm text-muted-foreground">
-          Track member joins, voice events, presence updates, and audit actions across guilds.
+          Track member joins, voice events, presence updates, and audit actions
+          across guilds.
         </p>
       </div>
 
@@ -169,7 +180,11 @@ function TableSkeleton({ cols }: { cols: number }) {
       {Array.from({ length: 7 }).map((_, i) => (
         <div key={i} className="flex gap-4 px-4 py-3">
           {Array.from({ length: cols }).map((_, j) => (
-            <Skeleton key={j} className="h-4 flex-1" style={{ opacity: 1 - i * 0.1 }} />
+            <Skeleton
+              key={j}
+              className="h-4 flex-1"
+              style={{ opacity: 1 - i * 0.1 }}
+            />
           ))}
         </div>
       ))}
@@ -186,21 +201,26 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
-function eventVariant(type: string): 'default' | 'secondary' | 'destructive' | 'outline' {
+function eventVariant(
+  type: string,
+): "default" | "secondary" | "destructive" | "outline" {
   const lower = type.toLowerCase();
-  if (/join|create|add|connect|grant/.test(lower)) return 'default';
-  if (/leave|remove|delete|ban|kick|disconnect|prune/.test(lower)) return 'destructive';
-  return 'secondary';
+  if (/join|create|add|connect|grant/.test(lower)) return "default";
+  if (/leave|remove|delete|ban|kick|disconnect|prune/.test(lower))
+    return "destructive";
+  return "secondary";
 }
 
 function StatusDot({ status }: { status?: string | null }) {
   const colorMap: Record<string, string> = {
-    online: 'bg-emerald-500',
-    idle: 'bg-amber-500',
-    dnd: 'bg-red-500',
+    online: "bg-emerald-500",
+    idle: "bg-amber-500",
+    dnd: "bg-red-500",
   };
-  const color = colorMap[status ?? ''] ?? 'bg-muted-foreground/40';
-  return <span className={`inline-block size-2 shrink-0 rounded-full ${color}`} />;
+  const color = colorMap[status ?? ""] ?? "bg-muted-foreground/40";
+  return (
+    <span className={`inline-block size-2 shrink-0 rounded-full ${color}`} />
+  );
 }
 
 function UserCell({
@@ -214,9 +234,7 @@ function UserCell({
 }) {
   if (!username) {
     return (
-      <span className="truncate text-sm text-muted-foreground">
-        {userId}
-      </span>
+      <span className="truncate text-sm text-muted-foreground">{userId}</span>
     );
   }
 
@@ -240,12 +258,20 @@ function UserCell({
 
 // ─── Table panels ───────────────────────────────────────────────────────────────
 
-function MemberTable({ data, loading }: { data: MemberEvent[]; loading: boolean }) {
+function MemberTable({
+  data,
+  loading,
+}: {
+  data: MemberEvent[];
+  loading: boolean;
+}) {
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Member Events</CardTitle>
-        <CardDescription>Join, leave, role, and nickname changes.</CardDescription>
+        <CardDescription>
+          Join, leave, role, and nickname changes.
+        </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
         {loading ? (
@@ -268,7 +294,10 @@ function MemberTable({ data, loading }: { data: MemberEvent[]; loading: boolean 
               {data.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell>
-                    <Badge variant={eventVariant(row.eventType)} className="text-xs font-medium">
+                    <Badge
+                      variant={eventVariant(row.eventType)}
+                      className="text-xs font-medium"
+                    >
                       {row.eventType}
                     </Badge>
                   </TableCell>
@@ -295,12 +324,20 @@ function MemberTable({ data, loading }: { data: MemberEvent[]; loading: boolean 
   );
 }
 
-function VoiceTable({ data, loading }: { data: VoiceEvent[]; loading: boolean }) {
+function VoiceTable({
+  data,
+  loading,
+}: {
+  data: VoiceEvent[];
+  loading: boolean;
+}) {
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Voice Events</CardTitle>
-        <CardDescription>Channel joins, leaves, and state changes.</CardDescription>
+        <CardDescription>
+          Channel joins, leaves, and state changes.
+        </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
         {loading ? (
@@ -323,7 +360,10 @@ function VoiceTable({ data, loading }: { data: VoiceEvent[]; loading: boolean })
               {data.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell>
-                    <Badge variant={eventVariant(row.eventType)} className="text-xs font-medium">
+                    <Badge
+                      variant={eventVariant(row.eventType)}
+                      className="text-xs font-medium"
+                    >
                       {row.eventType}
                     </Badge>
                   </TableCell>
@@ -335,7 +375,9 @@ function VoiceTable({ data, loading }: { data: VoiceEvent[]; loading: boolean })
                     />
                   </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
-                    {row.channelId ?? <span className="text-muted-foreground/40">—</span>}
+                    {row.channelId ?? (
+                      <span className="text-muted-foreground/40">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                     {formatDateTime(row.createdAt)}
@@ -350,12 +392,20 @@ function VoiceTable({ data, loading }: { data: VoiceEvent[]; loading: boolean })
   );
 }
 
-function PresenceTable({ data, loading }: { data: PresenceEvent[]; loading: boolean }) {
+function PresenceTable({
+  data,
+  loading,
+}: {
+  data: PresenceEvent[];
+  loading: boolean;
+}) {
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Presence Updates</CardTitle>
-        <CardDescription>Online status and client state changes.</CardDescription>
+        <CardDescription>
+          Online status and client state changes.
+        </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
         {loading ? (
@@ -387,11 +437,15 @@ function PresenceTable({ data, loading }: { data: PresenceEvent[]; loading: bool
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <StatusDot status={row.status} />
-                      <span className="text-sm capitalize">{row.status ?? 'offline'}</span>
+                      <span className="text-sm capitalize">
+                        {row.status ?? "offline"}
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {row.clientStatus ?? <span className="text-muted-foreground/40">—</span>}
+                    {row.clientStatus ?? (
+                      <span className="text-muted-foreground/40">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                     {formatDateTime(row.updatedAt)}
@@ -406,12 +460,20 @@ function PresenceTable({ data, loading }: { data: PresenceEvent[]; loading: bool
   );
 }
 
-function AuditTable({ data, loading }: { data: AuditEvent[]; loading: boolean }) {
+function AuditTable({
+  data,
+  loading,
+}: {
+  data: AuditEvent[];
+  loading: boolean;
+}) {
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Guild Audit Log</CardTitle>
-        <CardDescription>Administrative actions and permission changes.</CardDescription>
+        <CardDescription>
+          Administrative actions and permission changes.
+        </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
         {loading ? (
@@ -434,15 +496,22 @@ function AuditTable({ data, loading }: { data: AuditEvent[]; loading: boolean })
               {data.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell>
-                    <Badge variant={eventVariant(row.actionType)} className="text-xs font-medium">
+                    <Badge
+                      variant={eventVariant(row.actionType)}
+                      className="text-xs font-medium"
+                    >
                       {row.actionType}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
-                    {row.targetId ?? <span className="text-muted-foreground/40">—</span>}
+                    {row.targetId ?? (
+                      <span className="text-muted-foreground/40">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
-                    {row.userId ?? <span className="text-muted-foreground/40">—</span>}
+                    {row.userId ?? (
+                      <span className="text-muted-foreground/40">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                     {formatDateTime(row.createdAt)}
