@@ -12,7 +12,7 @@
 
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
-import fs from 'node:fs';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { io as SocketIOClient } from 'socket.io-client';
@@ -52,17 +52,18 @@ describe('Discord Selfbot Logger Integration', () => {
 
   before(async () => {
     // Clean previous test artifacts
-    try { fs.unlinkSync(TEST_DB); } catch {}
-    try { fs.unlinkSync(TEST_DB + '-wal'); } catch {}
-    try { fs.unlinkSync(TEST_DB + '-shm'); } catch {}
+    await fs.unlink(TEST_DB).catch(() => {});
+    await fs.unlink(TEST_DB + '-wal').catch(() => {});
+    await fs.unlink(TEST_DB + '-shm').catch(() => {});
 
     // Backup original config.yaml if it exists
-    if (fs.existsSync(CONFIG_PATH)) {
-      originalConfig = fs.readFileSync(CONFIG_PATH, 'utf-8');
-    }
+    try {
+      await fs.access(CONFIG_PATH);
+      originalConfig = await fs.readFile(CONFIG_PATH, 'utf-8');
+    } catch {}
 
     // Write test-specific config.yaml
-    fs.writeFileSync(
+    await fs.writeFile(
       CONFIG_PATH,
       `token: dummy-discord-token-for-testing
 dashboard:
@@ -96,14 +97,14 @@ logging:
     }
     // Restore original config.yaml
     if (originalConfig !== null) {
-      fs.writeFileSync(CONFIG_PATH, originalConfig, 'utf-8');
+      await fs.writeFile(CONFIG_PATH, originalConfig, 'utf-8');
     } else {
-      try { fs.unlinkSync(CONFIG_PATH); } catch {}
+      await fs.unlink(CONFIG_PATH).catch(() => {});
     }
     // Clean up test DB files
-    try { fs.unlinkSync(TEST_DB); } catch {}
-    try { fs.unlinkSync(TEST_DB + '-wal'); } catch {}
-    try { fs.unlinkSync(TEST_DB + '-shm'); } catch {}
+    await fs.unlink(TEST_DB).catch(() => {});
+    await fs.unlink(TEST_DB + '-wal').catch(() => {});
+    await fs.unlink(TEST_DB + '-shm').catch(() => {});
   });
 
   /* ---------------------------------------------------------------- */

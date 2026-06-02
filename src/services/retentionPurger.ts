@@ -1,4 +1,4 @@
-import fs from 'node:fs';
+import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { db } from '@/database/index.js';
 import { sql } from 'drizzle-orm';
@@ -21,18 +21,14 @@ export function startRetentionPurger(): void {
 
   // Initial run after 10s, then every 24h
   setTimeout(() => {
-    try {
-      runPurge();
-    } catch (err) {
+    runPurge().catch((err) => {
       logger.error({ err }, 'Scheduled retention purge failed');
-    }
+    });
   }, 10000);
   setInterval(() => {
-    try {
-      runPurge();
-    } catch (err) {
+    runPurge().catch((err) => {
       logger.error({ err }, 'Scheduled retention purge failed');
-    }
+    });
   }, DAY_MS);
 }
 
@@ -45,7 +41,7 @@ export interface PurgeSummary {
   filesRemoved: number;
 }
 
-export function runPurge(retentionDaysOverride?: number): PurgeSummary {
+export async function runPurge(retentionDaysOverride?: number): Promise<PurgeSummary> {
   const retentionDays = retentionDaysOverride ?? config.logging.retentionDays;
   const cutoff = Math.floor((Date.now() - retentionDays * DAY_MS) / 1000);
   logger.info({ cutoff: new Date(cutoff * 1000).toISOString(), retentionDays }, 'Running retention purge');
@@ -81,7 +77,7 @@ export function runPurge(retentionDaysOverride?: number): PurgeSummary {
     let filesRemoved = 0;
     for (const filePath of filesToDelete) {
       try {
-        fs.unlinkSync(filePath);
+        await fsp.unlink(filePath);
         filesRemoved++;
       } catch (err) {
         logger.warn({ filePath, err }, 'Failed to delete attachment file during purge');
@@ -99,7 +95,7 @@ export function runPurge(retentionDaysOverride?: number): PurgeSummary {
 
     logger.info(summary, 'Retention purge completed');
 
-    cleanupOrphans();
+    await cleanupOrphans();
     maybeVacuum();
 
     return summary;
@@ -109,7 +105,7 @@ export function runPurge(retentionDaysOverride?: number): PurgeSummary {
   }
 }
 
-function cleanupOrphans(): void {
+async function cleanupOrphans(): Promise<void> {
   let currentConfig = config;
   try {
     currentConfig = loadConfig();
@@ -118,19 +114,21 @@ function cleanupOrphans(): void {
   }
   const attachmentsDir = path.resolve(process.cwd(), currentConfig.logging.attachments.path);
 
-  if (!fs.existsSync(attachmentsDir)) {
+  try {
+    await fsp.access(attachmentsDir);
+  } catch {
     return;
   }
 
   let filesScanned = 0;
   let filesRemoved = 0;
 
-  function scanDir(dir: string): void {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
+  async function scanDir(dir: string): Promise<void> {
+    const entries = await fsp.readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
-        scanDir(fullPath);
+        await scanDir(fullPath);
       } else {
         filesScanned++;
         const row = db.get(sql`SELECT 1 AS ok FROM attachments WHERE local_path = ${fullPath} LIMIT 1`) as
@@ -138,7 +136,7 @@ function cleanupOrphans(): void {
           | undefined;
         if (!row) {
           try {
-            fs.unlinkSync(fullPath);
+            await fsp.unlink(fullPath);
             filesRemoved++;
           } catch (err) {
             logger.warn({ fullPath, err }, 'Failed to remove orphaned attachment file');
@@ -148,7 +146,7 @@ function cleanupOrphans(): void {
     }
   }
 
-  scanDir(attachmentsDir);
+  await scanDir(attachmentsDir);
   logger.info({ filesScanned, filesRemoved }, 'Orphaned attachment cleanup completed');
 }
 

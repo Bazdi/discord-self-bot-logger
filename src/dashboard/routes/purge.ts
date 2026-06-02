@@ -5,7 +5,7 @@ import { logger } from '@/utils/logger.js';
 
 const router = Router();
 
-router.delete('/', (req, res, next) => {
+router.delete('/', async (req, res, next) => {
   const remoteAddr = req.socket?.remoteAddress ?? req.ip ?? '';
   const isLocal =
     remoteAddr === '127.0.0.1' ||
@@ -26,7 +26,7 @@ router.delete('/', (req, res, next) => {
       return;
     }
 
-    const deleted = runPurge(retentionDays);
+    const deleted = await runPurge(retentionDays);
 
     logger.info(deleted, 'Manual purge completed via API');
 
