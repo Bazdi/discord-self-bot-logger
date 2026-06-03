@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import z from 'zod';
-import { getUserById, getUserMessageCount, getMessagesByUser } from '@/database/queries.js';
+import {
+  getUserById,
+  getUserStats,
+  getMessagesByUser,
+} from '@/database/queries.js';
 import { logger } from '@/utils/logger.js';
 
 const router = Router();
@@ -17,8 +21,11 @@ router.get('/:id', async (req, res, next) => {
       res.status(404).json({ error: 'User not found' });
       return;
     }
-    const messageCount = getUserMessageCount(req.params.id);
-    res.json({ ...user, stats: { messageCount } });
+    const stats = getUserStats(req.params.id);
+    res.json({
+      ...user,
+      stats,
+    });
   } catch (err) {
     logger.error(err, 'Failed to fetch user');
     next(err);

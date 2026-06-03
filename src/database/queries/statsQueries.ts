@@ -184,15 +184,38 @@ export function getMessagesCount(): number {
 }
 
 /* ------------------------------------------------------------------ */
-/*  getUserById / getUserMessageCount                                  */
+/*  getUserById / getUserStats                                         */
 /* ------------------------------------------------------------------ */
 
 export function getUserById(id: string) {
   return db.select().from(schema.users).where(eq(schema.users.id, id)).get();
 }
 
-export function getUserMessageCount(userId: string): number {
-  return (
-    db.all<{ count: number }>(sql`SELECT count(*) AS count FROM messages WHERE author_id = ${userId}`)[0]?.count ?? 0
-  );
+export function getUserStats(userId: string): {
+  messageCount: number;
+  guildCount: number;
+  firstMessageAt: number | null;
+  lastMessageAt: number | null;
+} {
+  const rows = db.all<{
+    messageCount: number;
+    guildCount: number;
+    firstMessageAt: number | null;
+    lastMessageAt: number | null;
+  }>(sql`
+    SELECT
+      count(*) AS messageCount,
+      count(DISTINCT guild_id) AS guildCount,
+      min(created_at) AS firstMessageAt,
+      max(created_at) AS lastMessageAt
+    FROM messages
+    WHERE author_id = ${userId}
+  `);
+  const row = rows[0];
+  return {
+    messageCount: row?.messageCount ?? 0,
+    guildCount: row?.guildCount ?? 0,
+    firstMessageAt: row?.firstMessageAt ?? null,
+    lastMessageAt: row?.lastMessageAt ?? null,
+  };
 }
