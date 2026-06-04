@@ -365,12 +365,8 @@ export default function MessageDetail() {
                 )}
 
                 {(surroundingBefore.length > 0 || surroundingAfter.length > 0) && (
-                  <div className="flex items-center gap-3 py-1">
-                    <div className="flex-1 h-px bg-border" />
-                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                      Current message
-                    </span>
-                    <div className="flex-1 h-px bg-border" />
+                  <div className="rounded-xl border-2 border-red-500/50 bg-red-500/10">
+                    <MessageCard message={message} compact />
                   </div>
                 )}
 
