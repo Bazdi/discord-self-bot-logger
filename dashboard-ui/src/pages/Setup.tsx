@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Plus, X } from 'lucide-react';
+import { ArrowRight, Plus, X } from 'lucide-react';
 import apiClient from '../api/client';
 import { GuildPicker } from '../components/GuildPicker';
 import { Button } from '@/components/ui/button';
@@ -21,9 +21,7 @@ export default function Setup() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Manual guild ID input
   const [manualInput, setManualInput] = useState('');
@@ -44,26 +42,13 @@ export default function Setup() {
       }
     }
     fetchGuilds();
-
-    return () => {
-      if (savedTimeoutRef.current) {
-        clearTimeout(savedTimeoutRef.current);
-      }
-    };
   }, []);
 
   const persistSelection = async (nextSelected: Set<string>) => {
     setSaving(true);
-    setSaved(false);
     setSaveError(null);
-    if (savedTimeoutRef.current) {
-      clearTimeout(savedTimeoutRef.current);
-      savedTimeoutRef.current = null;
-    }
     try {
       await apiClient.post('/config/guilds', { guildIds: Array.from(nextSelected) });
-      setSaved(true);
-      savedTimeoutRef.current = setTimeout(() => setSaved(false), 2000);
     } catch (err: any) {
       setSaveError(err?.response?.data?.error || 'Failed to save guild selection');
       throw err;
@@ -157,14 +142,6 @@ export default function Setup() {
       </div>
 
       {/* Save status banner */}
-      {saved && (
-        <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-4 py-3">
-          <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
-          <p className="text-sm text-emerald-600 dark:text-emerald-400">
-            Configuration saved.
-          </p>
-        </div>
-      )}
       {saveError && (
         <div className="flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3">
           <X className="size-4 shrink-0 text-destructive" />
