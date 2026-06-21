@@ -157,6 +157,14 @@ export const voiceEvents = sqliteTable('voice_events', {
   idxVoiceGuild: index('idx_voice_guild').on(table.guildId, table.createdAt),
 }));
 
+export const roles = sqliteTable('roles', {
+  id: text('id').primaryKey(),
+  guildId: text('guild_id').notNull().references(() => guilds.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  color: integer('color'),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }),
+});
+
 export const guildAudit = sqliteTable('guild_audit', {
   id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
   guildId: text('guild_id').notNull(),

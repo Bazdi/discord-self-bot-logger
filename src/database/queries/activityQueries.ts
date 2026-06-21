@@ -1,6 +1,7 @@
 import { eq, and, desc, inArray, type SQL } from 'drizzle-orm';
 import { db } from '../index.js';
 import * as schema from '../schema.js';
+import { roles } from '../schema.js';
 
 /* ------------------------------------------------------------------ */
 /*  getMemberEvents / getVoiceEvents / getPresenceUpdates / getGuildAudit */
@@ -61,10 +62,13 @@ export function getVoiceEvents(
       username: schema.users.username,
       avatarUrl: schema.users.avatarUrl,
       channelName: schema.channels.name,
+      guildName: schema.guilds.name,
+      guildIconUrl: schema.guilds.iconUrl,
     })
     .from(schema.voiceEvents)
     .leftJoin(schema.users, eq(schema.users.id, schema.voiceEvents.userId))
     .leftJoin(schema.channels, eq(schema.channels.id, schema.voiceEvents.channelId))
+    .leftJoin(schema.guilds, eq(schema.guilds.id, schema.voiceEvents.guildId))
     .$dynamic();
   if (conditions.length > 0) query = query.where(and(...conditions));
   return query.orderBy(desc(schema.voiceEvents.createdAt)).limit(limit).all();
@@ -89,9 +93,12 @@ export function getPresenceUpdates(
       updatedAt: schema.presenceUpdates.updatedAt,
       username: schema.users.username,
       avatarUrl: schema.users.avatarUrl,
+      guildName: schema.guilds.name,
+      guildIconUrl: schema.guilds.iconUrl,
     })
     .from(schema.presenceUpdates)
     .leftJoin(schema.users, eq(schema.users.id, schema.presenceUpdates.userId))
+    .leftJoin(schema.guilds, eq(schema.guilds.id, schema.presenceUpdates.guildId))
     .$dynamic();
   if (conditions.length > 0) query = query.where(and(...conditions));
   return query.orderBy(desc(schema.presenceUpdates.updatedAt)).limit(limit).all();
@@ -125,10 +132,11 @@ export function getGuildAudit(
       .forEach((u) => actorMap.set(u.id, { username: u.username, avatarUrl: u.avatarUrl }));
   }
 
-  // Batch-resolve targets (channels and users, same IDs checked in both tables)
+  // Batch-resolve targets (channels, users, and roles checked in all three tables)
   const targetIds = [...new Set(rows.map((r) => r.targetId).filter((id): id is string => id != null))];
   const targetChannelMap = new Map<string, string | null>();
   const targetUserMap = new Map<string, string | null>();
+  const targetRoleMap = new Map<string, string | null>();
   if (targetIds.length > 0) {
     db.select({ id: schema.channels.id, name: schema.channels.name })
       .from(schema.channels)
@@ -140,6 +148,11 @@ export function getGuildAudit(
       .where(inArray(schema.users.id, targetIds))
       .all()
       .forEach((u) => targetUserMap.set(u.id, u.username));
+    db.select({ id: roles.id, name: roles.name })
+      .from(roles)
+      .where(inArray(roles.id, targetIds))
+      .all()
+      .forEach((r) => targetRoleMap.set(r.id, r.name));
   }
 
   // Batch-resolve guild names
@@ -159,6 +172,7 @@ export function getGuildAudit(
     actorAvatarUrl: r.userId ? (actorMap.get(r.userId)?.avatarUrl ?? null) : null,
     targetChannelName: r.targetId ? (targetChannelMap.get(r.targetId) ?? null) : null,
     targetUsername: r.targetId ? (targetUserMap.get(r.targetId) ?? null) : null,
+    targetRoleName: r.targetId ? (targetRoleMap.get(r.targetId) ?? null) : null,
     guildName: guildMap.get(r.guildId)?.name ?? null,
     guildIconUrl: guildMap.get(r.guildId)?.iconUrl ?? null,
   }));

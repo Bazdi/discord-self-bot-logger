@@ -4,6 +4,7 @@ import { presenceUpdates, latestPresences } from '@/database/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { broadcaster } from '@/dashboard/socket/broadcaster.js';
 import { enrichUser } from '@/services/enricher.js';
+import { config } from '@/config/loader.js';
 
 /**
  * Record a presence change to the history table, upsert the latest
@@ -67,6 +68,10 @@ export function handlePresenceUpdate(
 
   const guildId = newPresence.guild?.id ?? null;
   const userId = newPresence.userId;
+
+  // Filter to tracked guilds only (requireGuild can't be used here because oldPresence can be null)
+  const allowedGuilds = config.logging?.guilds ?? [];
+  if (allowedGuilds.length > 0 && guildId && !allowedGuilds.includes(guildId)) return;
 
   if (newPresence.user) {
     enrichUser({

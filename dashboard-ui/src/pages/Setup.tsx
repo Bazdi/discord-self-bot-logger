@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, CheckCheck, Loader2, Play, Plus, Square, X } from 'lucide-react';
 import apiClient from '../api/client';
@@ -76,8 +76,6 @@ export default function Setup() {
   const [backfillError, setBackfillError] = useState<string | null>(null);
 
   // Poll status every 2s while running
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   useEffect(() => {
     if (!backfillStatus?.running) return;
     const id = setInterval(async () => {

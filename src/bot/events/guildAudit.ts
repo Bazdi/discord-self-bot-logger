@@ -1,6 +1,6 @@
 import { Client, Channel, Role, Guild, ThreadChannel } from 'discord.js-selfbot-v13';
 import { db } from '@/database/index.js';
-import { guildAudit, channels, guilds } from '@/database/schema.js';
+import { guildAudit, channels, guilds, roles } from '@/database/schema.js';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/utils/logger.js';
 import { requireGuild } from '../guildFilter.js';
@@ -132,6 +132,17 @@ async function onRoleCreate(client: Client, role: Role) {
     const guildId = role.guild.id;
     const createdAt = new Date();
 
+    db.insert(roles).values({
+      id: role.id,
+      guildId,
+      name: role.name,
+      color: role.color,
+      updatedAt: createdAt,
+    }).onConflictDoUpdate({
+      target: roles.id,
+      set: { name: role.name, color: role.color, updatedAt: createdAt },
+    }).run();
+
     db.insert(guildAudit).values({
       guildId,
       actionType: 'ROLE_CREATE',
@@ -152,6 +163,17 @@ async function onRoleUpdate(client: Client, oldRole: Role, newRole: Role) {
   try {
     const guildId = newRole.guild.id;
     const createdAt = new Date();
+
+    db.insert(roles).values({
+      id: newRole.id,
+      guildId,
+      name: newRole.name,
+      color: newRole.color,
+      updatedAt: createdAt,
+    }).onConflictDoUpdate({
+      target: roles.id,
+      set: { name: newRole.name, color: newRole.color, updatedAt: createdAt },
+    }).run();
 
     const changes: Record<string, { old: any; new: any }> = {};
     if (oldRole.name !== newRole.name) changes.name = { old: oldRole.name, new: newRole.name };

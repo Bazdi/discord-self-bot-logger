@@ -51,6 +51,8 @@ interface VoiceEvent {
   username?: string | null;
   avatarUrl?: string | null;
   channelName?: string | null;
+  guildName?: string | null;
+  guildIconUrl?: string | null;
 }
 
 interface PresenceEvent {
@@ -62,6 +64,8 @@ interface PresenceEvent {
   updatedAt: TimestampValue;
   username?: string | null;
   avatarUrl?: string | null;
+  guildName?: string | null;
+  guildIconUrl?: string | null;
 }
 
 interface AuditEvent {
@@ -78,6 +82,7 @@ interface AuditEvent {
   actorAvatarUrl?: string | null;
   targetChannelName?: string | null;
   targetUsername?: string | null;
+  targetRoleName?: string | null;
   guildName?: string | null;
   guildIconUrl?: string | null;
 }
@@ -393,6 +398,7 @@ function VoiceTable({
               <TableRow>
                 <TableHead>Event</TableHead>
                 <TableHead>User</TableHead>
+                <TableHead>Server</TableHead>
                 <TableHead>Channel</TableHead>
                 <TableHead className="text-right">Time</TableHead>
               </TableRow>
@@ -413,6 +419,13 @@ function VoiceTable({
                       userId={row.userId}
                       username={row.username}
                       avatarUrl={row.avatarUrl}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <GuildCell
+                      guildId={row.guildId}
+                      guildName={row.guildName}
+                      guildIconUrl={row.guildIconUrl}
                     />
                   </TableCell>
                   <TableCell>
@@ -464,6 +477,7 @@ function PresenceTable({
             <TableHeader>
               <TableRow>
                 <TableHead>User</TableHead>
+                <TableHead>Server</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Clients</TableHead>
                 <TableHead className="text-right">Updated</TableHead>
@@ -478,6 +492,17 @@ function PresenceTable({
                       username={row.username}
                       avatarUrl={row.avatarUrl}
                     />
+                  </TableCell>
+                  <TableCell>
+                    {row.guildId ? (
+                      <GuildCell
+                        guildId={row.guildId}
+                        guildName={row.guildName}
+                        guildIconUrl={row.guildIconUrl}
+                      />
+                    ) : (
+                      <span className="text-muted-foreground/40">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -527,15 +552,18 @@ function summarizeChanges(changesJson?: string | null): string | null {
 function AuditTarget({ row }: { row: AuditEvent }) {
   const channelName = row.targetChannelName;
   const username = row.targetUsername;
+  const roleName = row.targetRoleName;
   const changesSummary = summarizeChanges(row.changesJson);
 
   const label = channelName
     ? `#${channelName}`
     : username
       ? `@${username}`
-      : row.targetId
-        ? row.targetId.slice(-8)
-        : null;
+      : roleName
+        ? `@${roleName}`
+        : row.targetId
+          ? row.targetId.slice(-8)
+          : null;
 
   return (
     <div className="flex flex-col gap-0.5 min-w-0">
@@ -610,11 +638,15 @@ function AuditTable({
                     />
                   </TableCell>
                   <TableCell>
-                    <UserCell
-                      userId={row.userId ?? ''}
-                      username={row.actorUsername}
-                      avatarUrl={row.actorAvatarUrl}
-                    />
+                    {row.userId ? (
+                      <UserCell
+                        userId={row.userId}
+                        username={row.actorUsername}
+                        avatarUrl={row.actorAvatarUrl}
+                      />
+                    ) : (
+                      <span className="text-muted-foreground/40">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <AuditTarget row={row} />

@@ -54,7 +54,7 @@ export interface GuildStats {
   totalMemberEvents: number;
   totalVoiceEvents: number;
   topChannels: { channelId: string; channelName: string | null; guildIconUrl: string | null; count: number }[];
-  topUsers: { userId: string; count: number }[];
+  topUsers: { userId: string; username: string | null; avatarUrl: string | null; count: number }[];
 }
 
 export interface OverviewStats {

@@ -18,7 +18,8 @@ function resolveChannelType(type: unknown): number {
 }
 
 // Text channels that can have messages fetched via the messages API
-const BACKFILLABLE_TYPES = new Set([0, 5, 15]);
+// 0=GUILD_TEXT, 5=GUILD_NEWS, 10=GUILD_NEWS_THREAD, 11=GUILD_PUBLIC_THREAD, 15=GUILD_FORUM
+const BACKFILLABLE_TYPES = new Set([0, 5, 10, 11, 15]);
 
 function isBackfillable(ch: any): boolean {
   if (typeof ch.messages?.fetch !== 'function') return false;
@@ -57,6 +58,7 @@ export interface BackfillStatus {
 let _running = false;
 let _stop = false;
 let _startedAt: number | null = null;
+let _completedAt: number | null = null;
 let _totalFetched = 0;
 let _currentGuild: string | null = null;
 let _currentChannel: string | null = null;
@@ -68,7 +70,11 @@ export function getBackfillStatus(): BackfillStatus {
   return {
     running: _running,
     startedAt: _startedAt,
-    elapsedMs: _startedAt ? now - _startedAt : null,
+    elapsedMs: _startedAt
+      ? _completedAt
+        ? _completedAt - _startedAt
+        : now - _startedAt
+      : null,
     totalFetched: _totalFetched,
     currentGuild: _currentGuild,
     currentChannel: _currentChannel,
@@ -96,6 +102,7 @@ export async function startBackfill(client: Client, guildIds?: string[]): Promis
   _running = true;
   _stop = false;
   _startedAt = Date.now();
+  _completedAt = null;
   _totalFetched = 0;
   _currentGuild = null;
   _currentChannel = null;
@@ -284,14 +291,16 @@ export async function startBackfill(client: Client, guildIds?: string[]): Promis
       }, '[backfill] Guild done');
     }
 
+    _completedAt = Date.now();
     logger.info({
       totalFetched: _totalFetched,
       guilds: _guildProgress.length,
-      elapsedMs: Date.now() - (_startedAt ?? 0),
+      elapsedMs: _completedAt - (_startedAt ?? 0),
       stoppedEarly: _stoppedEarly,
     }, '[backfill] Complete');
 
   } catch (err) {
+    _completedAt = Date.now();
     logger.error({ err }, '[backfill] Fatal error');
   } finally {
     _running = false;

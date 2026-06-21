@@ -35,13 +35,15 @@ export default function ChannelFeed() {
   const [messages, setMessages] = useState<FeedMessage[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const loadingRef = useRef(false);
   const [hasMore, setHasMore] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { liveMessages, typingUsers } = useChannelSocket(channelId);
 
   const fetchMessages = useCallback(
     async (afterCursor?: string | null) => {
-      if (!channelId || loading) return;
+      if (!channelId || loadingRef.current) return;
+      loadingRef.current = true;
       setLoading(true);
       try {
         const params = new URLSearchParams();
@@ -61,6 +63,7 @@ export default function ChannelFeed() {
       } catch (err) {
         console.error(err);
       } finally {
+        loadingRef.current = false;
         setLoading(false);
       }
     },
