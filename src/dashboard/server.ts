@@ -19,6 +19,7 @@ import exportRouter from '@/dashboard/routes/export.js';
 import guildsRouter from '@/dashboard/routes/guilds.js';
 import attachmentsRouter from '@/dashboard/routes/attachments.js';
 import purgeRouter from '@/dashboard/routes/purge.js';
+import backfillRouter from '@/dashboard/routes/backfill.js';
 
 export function startDashboardServer(host: string, port: number): HttpServer {
   const app = express();
@@ -48,6 +49,7 @@ export function startDashboardServer(host: string, port: number): HttpServer {
   app.use('/api/v1/guilds', guildsRouter);
   app.use('/api/v1/attachments', attachmentsRouter);
   app.use('/api/v1/purge', purgeRouter);
+  app.use('/api/v1/backfill', backfillRouter);
 
   const staticPath = path.resolve(process.cwd(), 'dashboard-ui', 'dist');
   app.use(express.static(staticPath));

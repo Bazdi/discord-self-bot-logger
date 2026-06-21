@@ -36,6 +36,12 @@ export const configSchema = z.object({
     /** Retention in days */
     retentionDays: z.number().int().positive().default(365),
 
+    /** History backfill — mass-fetch past messages (violates Discord ToS) */
+    backfill: z.object({
+      perRequest: z.number().int().min(1).max(100).default(100),
+      delayMs: z.number().int().min(0).default(1500),
+    }).default({}),
+
     /** Presence subscription settings */
     presence: z.object({
       enabled: z.boolean().default(true),
