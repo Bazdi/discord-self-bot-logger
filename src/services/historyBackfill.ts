@@ -227,7 +227,7 @@ export async function startBackfill(client: Client, guildIds?: string[]): Promis
             }
 
             try {
-              db.insert(messages).values({
+              const result = db.insert(messages).values({
                 id: msg.id,
                 guildId,
                 channelId: ch.id,
@@ -242,7 +242,7 @@ export async function startBackfill(client: Client, guildIds?: string[]): Promis
                 componentsJson: msg.components?.length > 0 ? JSON.stringify(msg.components) : null,
                 flags: msg.flags?.bitfield ?? 0,
               }).onConflictDoNothing().run();
-              batchStored++;
+              if (result.changes > 0) batchStored++;
             } catch (err) {
               logger.error({ err, msgId: msg.id }, '[backfill] Insert failed');
             }
@@ -264,6 +264,12 @@ export async function startBackfill(client: Client, guildIds?: string[]): Promis
             channelTotal: channelFetched,
             grandTotal: _totalFetched,
           }, '[backfill] Batch stored');
+
+          // Stop paging if all messages in this batch already existed
+          if (batchStored === 0) {
+            logger.info({ guildId, channelId: ch.id }, '[backfill] Channel already up to date, stopping');
+            break;
+          }
 
           if (batch.size < perRequest) break;
 
