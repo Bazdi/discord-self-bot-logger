@@ -65,6 +65,8 @@ async function onChannelUpdate(client: Client, oldChannel: Channel, newChannel: 
     if (oc.nsfw !== nc.nsfw) changes.nsfw = { old: oc.nsfw, new: nc.nsfw };
     if (oc.parentId !== nc.parentId) changes.parentId = { old: oc.parentId, new: nc.parentId };
 
+    if (Object.keys(changes).length === 0) return;
+
     db.insert(guildAudit).values({
       guildId,
       actionType: 'CHANNEL_UPDATE',
@@ -158,6 +160,8 @@ async function onRoleUpdate(client: Client, oldRole: Role, newRole: Role) {
       changes.permissions = { old: oldRole.permissions.bitfield.toString(), new: newRole.permissions.bitfield.toString() };
     }
 
+    if (Object.keys(changes).length === 0) return;
+
     db.insert(guildAudit).values({
       guildId,
       actionType: 'ROLE_UPDATE',
@@ -205,6 +209,8 @@ async function onGuildUpdate(client: Client, oldGuild: Guild, newGuild: Guild) {
     if (oldGuild.icon !== newGuild.icon) changes.icon = { old: oldGuild.icon, new: newGuild.icon };
     if (oldGuild.ownerId !== newGuild.ownerId) changes.ownerId = { old: oldGuild.ownerId, new: newGuild.ownerId };
     if (oldGuild.memberCount !== newGuild.memberCount) changes.memberCount = { old: oldGuild.memberCount, new: newGuild.memberCount };
+
+    if (Object.keys(changes).length === 0) return;
 
     db.insert(guildAudit).values({
       guildId,
@@ -259,6 +265,8 @@ async function onThreadUpdate(client: Client, oldThread: ThreadChannel, newThrea
     const changes: Record<string, { old: any; new: any }> = {};
     if (oldThread.name !== newThread.name) changes.name = { old: oldThread.name, new: newThread.name };
     if (oldThread.archived !== newThread.archived) changes.archived = { old: oldThread.archived, new: newThread.archived };
+
+    if (Object.keys(changes).length === 0) return;
 
     db.insert(guildAudit).values({
       guildId,

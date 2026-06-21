@@ -4,9 +4,17 @@ import { reactions } from '@/database/schema.js';
 import { logger } from '@/utils/logger.js';
 import { requireGuild } from '../guildFilter.js';
 import { broadcaster } from '@/dashboard/socket/broadcaster.js';
+import { enrichUser } from '@/services/enricher.js';
 
 async function onReactionAdd(client: Client, reaction: MessageReaction, user: User) {
   try {
+    enrichUser({
+      id: user.id,
+      username: user.username,
+      discriminator: user.discriminator,
+      avatarURL: user.avatarURL.bind(user) as any,
+      bot: user.bot,
+    });
     const guildId = reaction.message.guildId ?? null;
     const channelId = reaction.message.channelId;
     const messageId = reaction.message.id;
@@ -36,6 +44,13 @@ async function onReactionAdd(client: Client, reaction: MessageReaction, user: Us
 
 async function onReactionRemove(client: Client, reaction: MessageReaction, user: User) {
   try {
+    enrichUser({
+      id: user.id,
+      username: user.username,
+      discriminator: user.discriminator,
+      avatarURL: user.avatarURL.bind(user) as any,
+      bot: user.bot,
+    });
     const guildId = reaction.message.guildId ?? null;
     const channelId = reaction.message.channelId;
     const messageId = reaction.message.id;

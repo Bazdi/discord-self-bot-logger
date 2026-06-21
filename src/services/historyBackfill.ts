@@ -207,6 +207,15 @@ export async function startBackfill(client: Client, guildIds?: string[]): Promis
               });
             }
 
+            const stickerLinks: string[] = [];
+            if (msg.stickers && msg.stickers.size > 0) {
+              for (const sticker of msg.stickers.values()) {
+                const format = Number(sticker.format);
+                const ext = format === 2 ? 'apng' : format === 3 ? 'json' : format === 4 ? 'gif' : 'png';
+                stickerLinks.push(`[${sticker.name}](https://media.discordapp.net/stickers/${sticker.id}.${ext}?size=300)`);
+              }
+            }
+
             try {
               db.insert(messages).values({
                 id: msg.id,
@@ -217,7 +226,10 @@ export async function startBackfill(client: Client, guildIds?: string[]): Promis
                 createdAt: new Date(msg.createdTimestamp),
                 isDm: false,
                 replyToId: msg.reference?.messageId ?? null,
+                stickerIds: JSON.stringify(msg.stickers?.map((s: any) => s.id) ?? []),
+                stickerLinks: stickerLinks.length > 0 ? JSON.stringify(stickerLinks) : null,
                 embedsJson: msg.embeds?.length > 0 ? JSON.stringify(msg.embeds) : null,
+                componentsJson: msg.components?.length > 0 ? JSON.stringify(msg.components) : null,
                 flags: msg.flags?.bitfield ?? 0,
               }).onConflictDoNothing().run();
               batchStored++;
