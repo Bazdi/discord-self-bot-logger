@@ -59,25 +59,7 @@ async function onChannelUpdate(client: Client, oldChannel: Channel, newChannel: 
     const oc = oldChannel as any;
     const nc = newChannel as any;
 
-    const changes: Record<string, { old: any; new: any }> = {};
-    if (oc.name !== nc.name) changes.name = { old: oc.name, new: nc.name };
-    if (oc.topic !== nc.topic) changes.topic = { old: oc.topic, new: nc.topic };
-    if (oc.nsfw !== nc.nsfw) changes.nsfw = { old: oc.nsfw, new: nc.nsfw };
-    if (oc.parentId !== nc.parentId) changes.parentId = { old: oc.parentId, new: nc.parentId };
-
-    if (Object.keys(changes).length === 0) return;
-
-    db.insert(guildAudit).values({
-      guildId,
-      actionType: 'CHANNEL_UPDATE',
-      targetId: nc.id,
-      targetType: 'CHANNEL',
-      userId: null,
-      changesJson: JSON.stringify(changes),
-      createdAt,
-    }).run();
-
-    // Upsert into channels table
+    // Always refresh channel metadata regardless of whether tracked fields changed
     db.insert(channels).values({
       id: nc.id,
       guildId,
@@ -95,6 +77,24 @@ async function onChannelUpdate(client: Client, oldChannel: Channel, newChannel: 
         nsfw: nc.nsfw ?? false,
         parentId: nc.parentId ?? null,
       },
+    }).run();
+
+    const changes: Record<string, { old: any; new: any }> = {};
+    if (oc.name !== nc.name) changes.name = { old: oc.name, new: nc.name };
+    if (oc.topic !== nc.topic) changes.topic = { old: oc.topic, new: nc.topic };
+    if (oc.nsfw !== nc.nsfw) changes.nsfw = { old: oc.nsfw, new: nc.nsfw };
+    if (oc.parentId !== nc.parentId) changes.parentId = { old: oc.parentId, new: nc.parentId };
+
+    if (Object.keys(changes).length === 0) return;
+
+    db.insert(guildAudit).values({
+      guildId,
+      actionType: 'CHANNEL_UPDATE',
+      targetId: nc.id,
+      targetType: 'CHANNEL',
+      userId: null,
+      changesJson: JSON.stringify(changes),
+      createdAt,
     }).run();
 
     broadcaster.toGuild(guildId, 'guild:audit', { guildId, actionType: 'CHANNEL_UPDATE', targetId: nc.id, changes, createdAt });
@@ -204,6 +204,14 @@ async function onGuildUpdate(client: Client, oldGuild: Guild, newGuild: Guild) {
     const guildId = newGuild.id;
     const createdAt = new Date();
 
+    // Always refresh guild metadata regardless of whether tracked fields changed
+    db.update(guilds).set({
+      name: newGuild.name,
+      iconUrl: newGuild.iconURL() ?? null,
+      ownerId: newGuild.ownerId,
+      memberCount: newGuild.memberCount,
+    }).where(eq(guilds.id, guildId)).run();
+
     const changes: Record<string, { old: any; new: any }> = {};
     if (oldGuild.name !== newGuild.name) changes.name = { old: oldGuild.name, new: newGuild.name };
     if (oldGuild.icon !== newGuild.icon) changes.icon = { old: oldGuild.icon, new: newGuild.icon };
@@ -221,14 +229,6 @@ async function onGuildUpdate(client: Client, oldGuild: Guild, newGuild: Guild) {
       changesJson: JSON.stringify(changes),
       createdAt,
     }).run();
-
-    // Update guilds table with latest metadata
-    db.update(guilds).set({
-      name: newGuild.name,
-      iconUrl: newGuild.iconURL() ?? null,
-      ownerId: newGuild.ownerId,
-      memberCount: newGuild.memberCount,
-    }).where(eq(guilds.id, guildId)).run();
 
     broadcaster.toGuild(guildId, 'guild:audit', { guildId, actionType: 'GUILD_UPDATE', changes, createdAt });
   } catch (err) {

@@ -39,6 +39,7 @@ export interface GuildProgress {
   fetched: number;
   done: boolean;
   startedAt: number;
+  completedAt?: number;
   elapsedMs: number;
 }
 
@@ -73,7 +74,9 @@ export function getBackfillStatus(): BackfillStatus {
     currentChannel: _currentChannel,
     guilds: _guildProgress.map((g) => ({
       ...g,
-      elapsedMs: g.startedAt ? now - g.startedAt : 0,
+      elapsedMs: g.completedAt
+        ? g.completedAt - g.startedAt
+        : g.startedAt ? now - g.startedAt : 0,
     })),
     stoppedEarly: _stoppedEarly,
   };
@@ -271,12 +274,13 @@ export async function startBackfill(client: Client, guildIds?: string[]): Promis
       }
 
       guildEntry.done = true;
+      guildEntry.completedAt = Date.now();
       logger.info({
         guildId,
         guildName: guild.name,
         fetched: guildEntry.fetched,
         channels: guildEntry.channels.length,
-        elapsedMs: Date.now() - guildStart,
+        elapsedMs: guildEntry.completedAt - guildStart,
       }, '[backfill] Guild done');
     }
 
