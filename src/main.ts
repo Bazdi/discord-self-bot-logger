@@ -1,9 +1,8 @@
-import { loadConfig } from '@/config/loader.js';
+import { config, initConfig } from '@/config/loader.js';
 import { initDatabase, closeDatabase } from '@/database/index.js';
 import { startDashboardServer } from '@/dashboard/server.js';
 
 import { client, startBot } from '@/bot/client.js';
-import { db } from '@/database/index.js';
 import { startRetentionPurger } from '@/services/retentionPurger.js';
 import { startPresencePoller } from '@/services/presencePoller.js';
 import { logger } from '@/utils/logger.js';
@@ -12,7 +11,7 @@ import type { Server as HttpServer } from 'node:http';
 async function main(): Promise<void> {
   logger.info("=== Discord Selfbot Logger starting ===");
 
-  const config = loadConfig();
+  initConfig();
   initDatabase();
   const server = startDashboardServer(
     config.dashboard.host,
@@ -27,7 +26,7 @@ async function main(): Promise<void> {
     stopPresencePoller = startPresencePoller(client, { immediate: true });
   });
 
-  await startBot(db);
+  await startBot();
 
   logger.info(
     "Startup complete. Dashboard: http://%s:%d",

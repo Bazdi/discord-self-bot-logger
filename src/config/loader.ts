@@ -72,7 +72,18 @@ export function loadConfig(): Config {
   return result.data;
 }
 
-export const config = loadConfig();
+export let config: Config = undefined as unknown as Config;
+
+let configInitialized = false;
+
+/** Load config.yaml into the in-memory singleton. Idempotent. */
+export function initConfig(): Config {
+  if (!configInitialized) {
+    config = loadConfig();
+    configInitialized = true;
+  }
+  return config;
+}
 
 function setNestedValue(obj: Record<string, unknown>, path: string, value: unknown): void {
   const keys = path.split('.');

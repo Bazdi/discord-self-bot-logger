@@ -1,12 +1,12 @@
 import { Client, Message, PartialMessage, Collection } from 'discord.js-selfbot-v13';
-import { DrizzleDb, db } from '@/database/index.js';
+import { db } from '@/database/index.js';
 import { messages, messageDeletes } from '@/database/schema.js';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/utils/logger.js';
 import { requireGuild } from '../guildFilter.js';
 import { broadcaster } from '@/dashboard/socket/broadcaster.js';
 
-async function onMessageDelete(client: Client, _db: DrizzleDb, message: Message | PartialMessage) {
+async function onMessageDelete(client: Client, message: Message | PartialMessage) {
   try {
     const guildId = message.guildId ?? null;
     const channelId = message.channelId;
@@ -54,7 +54,7 @@ async function onMessageDelete(client: Client, _db: DrizzleDb, message: Message 
   }
 }
 
-async function onMessageDeleteBulk(client: Client, _db: DrizzleDb, msgsCollection: Collection<string, Message>) {
+async function onMessageDeleteBulk(client: Client, msgsCollection: Collection<string, Message>) {
   try {
     const first = msgsCollection.first?.() ?? null;
     const guildId = first?.guildId ?? null;

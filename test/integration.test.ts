@@ -79,8 +79,9 @@ logging:
 
     process.env.NODE_ENV = 'production';
 
-    // Import project modules (side-effects: DB init + migrations)
+    // Import project modules and initialise the database (open + migrate).
     dbModule = await import('../src/database/index.js');
+    dbModule.initDatabase();
     const dashboardModule = await import('../src/dashboard/server.js');
 
     // Start dashboard server
@@ -538,6 +539,33 @@ logging:
       const rows = dbModule.db.select().from(schema.messages).where(clause).all();
       assert.ok(rows.length > 0);
       assert.ok(rows.every((m: any) => m.authorId === 'user-1' || m.authorId === 'user-2'));
+    });
+  });
+
+  /* ---------------------------------------------------------------- */
+  /*  6. API Authentication                                            */
+  /* ---------------------------------------------------------------- */
+
+  describe('API Authentication', () => {
+    it('rejects unauthenticated requests when authToken is set, accepts authenticated ones', async () => {
+      const loader = await import('../src/config/loader.js');
+      loader.config.dashboard.authToken = 'secret-token';
+      try {
+        const unauth = await apiFetch('/health');
+        assert.strictEqual(unauth.status, 401);
+
+        const authed = await apiFetch('/health', {
+          headers: { Authorization: 'Bearer secret-token' },
+        });
+        assert.strictEqual(authed.status, 200);
+      } finally {
+        loader.config.dashboard.authToken = undefined;
+      }
+    });
+
+    it('passes all requests through when authToken is unset', async () => {
+      const res = await apiFetch('/health');
+      assert.strictEqual(res.status, 200);
     });
   });
 });

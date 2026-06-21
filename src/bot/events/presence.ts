@@ -1,5 +1,5 @@
 import { Client, Presence } from 'discord.js-selfbot-v13';
-import { DrizzleDb, db } from '@/database/index.js';
+import { db } from '@/database/index.js';
 import { presenceUpdates, latestPresences } from '@/database/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { broadcaster } from '@/dashboard/socket/broadcaster.js';
@@ -59,7 +59,6 @@ export function recordPresenceChange(
  */
 export function handlePresenceUpdate(
   _client: Client,
-  _db: DrizzleDb,
   _oldPresence: Presence | null,
   newPresence: Presence
 ) {

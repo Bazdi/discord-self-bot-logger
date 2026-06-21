@@ -1,12 +1,12 @@
 import { Client, Channel, Role, Guild, ThreadChannel } from 'discord.js-selfbot-v13';
-import { DrizzleDb, db } from '@/database/index.js';
+import { db } from '@/database/index.js';
 import { guildAudit, channels, guilds } from '@/database/schema.js';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/utils/logger.js';
 import { requireGuild } from '../guildFilter.js';
 import { broadcaster } from '@/dashboard/socket/broadcaster.js';
 
-async function onChannelCreate(client: Client, _db: DrizzleDb, channel: Channel) {
+async function onChannelCreate(client: Client, channel: Channel) {
   try {
     const guildId = (channel as any).guild?.id ?? null;
     if (!guildId) return;
@@ -50,7 +50,7 @@ async function onChannelCreate(client: Client, _db: DrizzleDb, channel: Channel)
   }
 }
 
-async function onChannelUpdate(client: Client, _db: DrizzleDb, oldChannel: Channel, newChannel: Channel) {
+async function onChannelUpdate(client: Client, oldChannel: Channel, newChannel: Channel) {
   try {
     const guildId = (newChannel as any).guild?.id ?? null;
     if (!guildId) return;
@@ -101,7 +101,7 @@ async function onChannelUpdate(client: Client, _db: DrizzleDb, oldChannel: Chann
   }
 }
 
-async function onChannelDelete(client: Client, _db: DrizzleDb, channel: Channel) {
+async function onChannelDelete(client: Client, channel: Channel) {
   try {
     const guildId = (channel as any).guild?.id ?? null;
     if (!guildId) return;
@@ -125,7 +125,7 @@ async function onChannelDelete(client: Client, _db: DrizzleDb, channel: Channel)
   }
 }
 
-async function onRoleCreate(client: Client, _db: DrizzleDb, role: Role) {
+async function onRoleCreate(client: Client, role: Role) {
   try {
     const guildId = role.guild.id;
     const createdAt = new Date();
@@ -146,7 +146,7 @@ async function onRoleCreate(client: Client, _db: DrizzleDb, role: Role) {
   }
 }
 
-async function onRoleUpdate(client: Client, _db: DrizzleDb, oldRole: Role, newRole: Role) {
+async function onRoleUpdate(client: Client, oldRole: Role, newRole: Role) {
   try {
     const guildId = newRole.guild.id;
     const createdAt = new Date();
@@ -174,7 +174,7 @@ async function onRoleUpdate(client: Client, _db: DrizzleDb, oldRole: Role, newRo
   }
 }
 
-async function onRoleDelete(client: Client, _db: DrizzleDb, role: Role) {
+async function onRoleDelete(client: Client, role: Role) {
   try {
     const guildId = role.guild.id;
     const createdAt = new Date();
@@ -195,7 +195,7 @@ async function onRoleDelete(client: Client, _db: DrizzleDb, role: Role) {
   }
 }
 
-async function onGuildUpdate(client: Client, _db: DrizzleDb, oldGuild: Guild, newGuild: Guild) {
+async function onGuildUpdate(client: Client, oldGuild: Guild, newGuild: Guild) {
   try {
     const guildId = newGuild.id;
     const createdAt = new Date();
@@ -230,7 +230,7 @@ async function onGuildUpdate(client: Client, _db: DrizzleDb, oldGuild: Guild, ne
   }
 }
 
-async function onThreadCreate(client: Client, _db: DrizzleDb, thread: ThreadChannel) {
+async function onThreadCreate(client: Client, thread: ThreadChannel) {
   try {
     const guildId = thread.guild.id;
     const createdAt = new Date();
@@ -251,7 +251,7 @@ async function onThreadCreate(client: Client, _db: DrizzleDb, thread: ThreadChan
   }
 }
 
-async function onThreadUpdate(client: Client, _db: DrizzleDb, oldThread: ThreadChannel, newThread: ThreadChannel) {
+async function onThreadUpdate(client: Client, oldThread: ThreadChannel, newThread: ThreadChannel) {
   try {
     const guildId = newThread.guild.id;
     const createdAt = new Date();
@@ -276,7 +276,7 @@ async function onThreadUpdate(client: Client, _db: DrizzleDb, oldThread: ThreadC
   }
 }
 
-async function onThreadDelete(client: Client, _db: DrizzleDb, thread: ThreadChannel) {
+async function onThreadDelete(client: Client, thread: ThreadChannel) {
   try {
     const guildId = thread.guild.id;
     const createdAt = new Date();

@@ -5,6 +5,8 @@ import path from 'node:path';
 import { logger } from '@/utils/logger.js';
 import { errorHandler } from '@/dashboard/middleware/errorHandler.js';
 import { initSocketIO } from '@/dashboard/socket/index.js';
+import { config } from '@/config/loader.js';
+import { apiAuth } from '@/dashboard/middleware/auth.js';
 
 import healthRouter from '@/dashboard/routes/health.js';
 import configRouter from '@/dashboard/routes/config.js';
@@ -22,9 +24,19 @@ export function startDashboardServer(host: string, port: number): HttpServer {
   const app = express();
   const server = createServer(app);
 
+  const isLoopback = host === '127.0.0.1' || host === '::1' || host === 'localhost';
+  if (!isLoopback && !config.dashboard.authToken) {
+    logger.warn(
+      `Dashboard bound to non-loopback host "${host}" without dashboard.authToken set — ` +
+        'the API and all logged Discord data are exposed to your network. ' +
+        'Set dashboard.authToken or bind to 127.0.0.1.'
+    );
+  }
+
   initSocketIO(server);
 
   app.use(express.json({ limit: '1mb' }));
+  app.use('/api/v1', apiAuth);
   app.use('/api/v1/health', healthRouter);
   app.use('/api/v1/config', configRouter);
   app.use('/api/v1/messages', messagesRouter);

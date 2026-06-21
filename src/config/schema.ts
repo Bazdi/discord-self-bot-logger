@@ -63,6 +63,8 @@ export const configSchema = z.object({
   dashboard: z.object({
     host: z.string().default('127.0.0.1'),
     port: z.number().int().positive().default(3333),
+    /** Optional bearer token; when set, the dashboard API and WebSocket require it. */
+    authToken: z.string().optional(),
   }).default({}),
 
   /** Database settings */

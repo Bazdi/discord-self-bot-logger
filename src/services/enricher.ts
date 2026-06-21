@@ -29,13 +29,6 @@ export interface DiscordGuild {
   joinedAt: Date | null;
 }
 
-export interface DiscordMessage {
-  id: string;
-  author: DiscordUser;
-  channel: DiscordChannel;
-  guild: DiscordGuild | null;
-}
-
 class SimpleLRU<T> {
   private cache = new Map<string, T>();
   constructor(private maxSize: number) {}
@@ -166,22 +159,4 @@ export function ensureGuild(guildId: string): void {
   } catch (err) {
     logger.error({ guildId, err }, 'Failed to ensure guild placeholder');
   }
-}
-
-export function enrichMessage(message: DiscordMessage): {
-  authorUsername: string;
-  channelName: string | null;
-  guildName: string | null;
-} {
-  enrichUser(message.author);
-  if (message.guild) {
-    enrichGuild(message.guild);
-  }
-  enrichChannel(message.channel);
-
-  return {
-    authorUsername: message.author.username,
-    channelName: message.channel.name ?? null,
-    guildName: message.guild?.name ?? null,
-  };
 }

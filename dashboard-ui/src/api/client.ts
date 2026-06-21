@@ -37,6 +37,11 @@ class FetchClient {
       ...(config.headers as Record<string, string> || {}),
     };
 
+    const authToken = localStorage.getItem('dsbl_auth_token');
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
@@ -53,7 +58,13 @@ class FetchClient {
         error.response = response;
         error.status = response.status;
 
-        if (response.status === 403) {
+        if (response.status === 401) {
+          const entered = window.prompt('Dashboard auth token required:');
+          if (entered) {
+            localStorage.setItem('dsbl_auth_token', entered);
+            window.location.reload();
+          }
+        } else if (response.status === 403) {
           console.error('Access denied.');
         } else if (response.status >= 500) {
           console.error('Server error. Please try again later.');

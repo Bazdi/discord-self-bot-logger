@@ -1,9 +1,8 @@
 import { Client } from 'discord.js-selfbot-v13';
 import { config } from '@/config/loader.js';
 import { logger } from '@/utils/logger.js';
-import { DrizzleDb } from '@/database/index.js';
 
-export type EventHandler = (client: Client, db: DrizzleDb, ...args: any[]) => Promise<void> | void;
+export type EventHandler = (client: Client, ...args: any[]) => Promise<void> | void;
 
 export function extractGuildId(args: any[]): string | null | undefined {
   const first = args[0];
@@ -30,14 +29,14 @@ export function extractGuildId(args: any[]): string | null | undefined {
 }
 
 export function requireGuild(handler: EventHandler): EventHandler {
-  return (client, db, ...args) => {
+  return (client, ...args) => {
     try {
       const guildId = extractGuildId(args);
 
       // DM check
       if (!guildId) {
         if (config.logging?.logDirectMessages) {
-          return handler(client, db, ...args);
+          return handler(client, ...args);
         }
         return;
       }
@@ -52,7 +51,7 @@ export function requireGuild(handler: EventHandler): EventHandler {
         return;
       }
 
-      return handler(client, db, ...args);
+      return handler(client, ...args);
     } catch (err) {
       logger.error({ err }, 'Error in requireGuild middleware');
     }

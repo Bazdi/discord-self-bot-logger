@@ -1,11 +1,11 @@
 import { Client, GuildMember, PartialGuildMember, GuildBan } from 'discord.js-selfbot-v13';
-import { DrizzleDb, db } from '@/database/index.js';
+import { db } from '@/database/index.js';
 import { memberEvents } from '@/database/schema.js';
 import { logger } from '@/utils/logger.js';
 import { requireGuild } from '../guildFilter.js';
 import { broadcaster } from '@/dashboard/socket/broadcaster.js';
 
-async function onGuildMemberAdd(client: Client, _db: DrizzleDb, member: GuildMember) {
+async function onGuildMemberAdd(client: Client, member: GuildMember) {
   try {
     const guildId = member.guild.id;
     const userId = member.id;
@@ -25,7 +25,7 @@ async function onGuildMemberAdd(client: Client, _db: DrizzleDb, member: GuildMem
   }
 }
 
-async function onGuildMemberRemove(client: Client, _db: DrizzleDb, member: GuildMember | PartialGuildMember) {
+async function onGuildMemberRemove(client: Client, member: GuildMember | PartialGuildMember) {
   try {
     const guildId = member.guild.id;
     const userId = member.id;
@@ -45,7 +45,7 @@ async function onGuildMemberRemove(client: Client, _db: DrizzleDb, member: Guild
   }
 }
 
-async function onGuildBanAdd(client: Client, _db: DrizzleDb, ban: GuildBan) {
+async function onGuildBanAdd(client: Client, ban: GuildBan) {
   try {
     const guildId = ban.guild.id;
     const userId = ban.user.id;
@@ -65,7 +65,7 @@ async function onGuildBanAdd(client: Client, _db: DrizzleDb, ban: GuildBan) {
   }
 }
 
-async function onGuildBanRemove(client: Client, _db: DrizzleDb, ban: GuildBan) {
+async function onGuildBanRemove(client: Client, ban: GuildBan) {
   try {
     const guildId = ban.guild.id;
     const userId = ban.user.id;
@@ -87,7 +87,6 @@ async function onGuildBanRemove(client: Client, _db: DrizzleDb, ban: GuildBan) {
 
 async function onGuildMemberUpdate(
   client: Client,
-  _db: DrizzleDb,
   oldMember: GuildMember | PartialGuildMember,
   newMember: GuildMember
 ) {

@@ -99,14 +99,17 @@ logging:
     messageDeletes: true
     reactions: true
     members: true
-    presence: true
     voice: true
     guildChanges: true
     channelChanges: true
     roleChanges: true
     threads: true
-    invites: true
     attachments: true
+
+  presence:
+    enabled: true
+    intervalSeconds: 60
+    maxSubscriptionUsers: 300
 
   retentionDays: 365
 
@@ -125,6 +128,9 @@ logging:
 dashboard:
   host: 127.0.0.1
   port: 3333
+  # Optional bearer token required for all API + WebSocket access
+  # (recommended whenever host is not 127.0.0.1).
+  # authToken: change-me
 
 database:
   path: ./storage/logs.db
@@ -164,6 +170,8 @@ database:
 | `npm start` | Run the compiled production build |
 | `npm run db:migrate` | Run Drizzle database migrations |
 | `npm run db:generate` | Generate new migration files from schema changes |
+| `npm test` | Run the integration test suite |
+| `npm run typecheck` | Type-check the backend without emitting |
 
 ---
 

@@ -1,5 +1,4 @@
 import { Client, Message } from 'discord.js-selfbot-v13';
-import { DrizzleDb } from '@/database/index.js';
 import { messages } from '@/database/schema.js';
 import { db } from '@/database/index.js';
 import { logger } from '@/utils/logger.js';
@@ -13,7 +12,7 @@ import {
   ensureGuild,
 } from '../../services/enricher.js';
 
-async function onMessageCreate(client: Client, _db: DrizzleDb, message: Message) {
+async function onMessageCreate(client: Client, message: Message) {
     try {
       const isDm = !message.guildId;
       const guildId = message.guildId ?? null;

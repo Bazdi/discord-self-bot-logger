@@ -1,5 +1,5 @@
 import { Client, Message, PartialMessage } from 'discord.js-selfbot-v13';
-import { DrizzleDb, db } from '@/database/index.js';
+import { db } from '@/database/index.js';
 import { messages, messageEdits } from '@/database/schema.js';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/utils/logger.js';
@@ -12,7 +12,7 @@ import {
   ensureGuild,
 } from '../../services/enricher.js';
 
-async function onMessageUpdate(client: Client, _db: DrizzleDb, oldMessage: Message | PartialMessage, newMessage: Message) {
+async function onMessageUpdate(client: Client, oldMessage: Message | PartialMessage, newMessage: Message) {
   try {
     const guildId = newMessage.guildId ?? null;
     const channelId = newMessage.channelId;

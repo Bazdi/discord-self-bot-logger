@@ -1,5 +1,5 @@
 import { parse } from 'search-query-parser';
-import type { Filter, FilterClause } from '../../../../src/shared/filters';
+import type { Filter, FilterClause } from '../../../src/shared/filters';
 
 const SEARCH_KEYWORDS = [
   'in',

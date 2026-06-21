@@ -11,7 +11,7 @@ import PQueue from 'p-queue';
 import { db } from '@/database/index.js';
 import { sql } from 'drizzle-orm';
 import { logger } from '@/utils/logger.js';
-import { loadConfig } from '@/config/loader.js';
+import { config } from '@/config/loader.js';
 
 function request(
   urlStr: string,
@@ -97,7 +97,6 @@ interface AttachmentConfig {
 }
 
 function getAttachmentConfig(): AttachmentConfig {
-  const config = loadConfig();
   return config.logging.attachments;
 }
 

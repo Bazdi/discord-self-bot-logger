@@ -5,10 +5,11 @@ import { logger } from '@/utils/logger.js';
 const router = Router();
 
 router.get('/', (_req, res) => {
-  const cfg = config;
+  const { authToken: _authToken, ...dashboard } = config.dashboard;
   const safe = {
-    ...cfg,
+    ...config,
     token: '[REDACTED]',
+    dashboard,
   };
   res.json(safe);
 });

@@ -1,56 +1,62 @@
 import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as schema from './schema.js';
-import { config } from '@/config/loader.js';
+import { config, initConfig } from '@/config/loader.js';
 import { logger } from '@/utils/logger.js';
 import { ensureDir } from '@/utils/paths.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const dbPath = config.database.path;
+export type DrizzleDb = BetterSQLite3Database<typeof schema>;
 
-ensureDir(path.dirname(dbPath));
+export let db: DrizzleDb;
+export let sqlite: Database.Database;
 
-const sqlite: Database.Database = new Database(dbPath);
+let initialized = false;
 
-if (config.database.wal) {
-  sqlite.pragma('journal_mode = WAL');
-}
-sqlite.pragma('foreign_keys = ON');
+/**
+ * Open the SQLite connection and run migrations. Idempotent: safe to call
+ * more than once. Must run (directly or via main()) before any query executes.
+ */
+export function initDatabase(): DrizzleDb {
+  if (initialized) return db;
 
-export const db = drizzle(sqlite, { schema });
-export type DrizzleDb = typeof db;
-export { sqlite };
+  // Database settings live in config, so make sure it is loaded first.
+  initConfig();
 
-// Run migrations
-// Walk up to project root (where package.json lives) so it works both bundled (dist/) and unbundled (src/)
-let projectRoot = __dirname;
-while (!fs.existsSync(path.join(projectRoot, 'package.json'))) {
-  const parent = path.dirname(projectRoot);
-  if (parent === projectRoot) break;
-  projectRoot = parent;
-}
-const migrationsFolder = path.join(projectRoot, 'src', 'database', 'migrations');
-try {
-  migrate(db, { migrationsFolder });
-  logger.info('Database migrations completed successfully');
-} catch (err) {
-  logger.error({ err }, 'Failed to run database migrations');
-  throw err;
-}
+  const dbPath = config.database.path;
+  ensureDir(path.dirname(dbPath));
 
-logger.info(`Database connected at ${dbPath}${config.database.wal ? ' (WAL mode)' : ''}`);
+  sqlite = new Database(dbPath);
+  if (config.database.wal) {
+    sqlite.pragma('journal_mode = WAL');
+  }
+  sqlite.pragma('foreign_keys = ON');
 
-export function initDatabase(): void {
-  // Database is already initialized at module load time.
-  // This function exists for explicit lifecycle management in main.ts.
+  db = drizzle(sqlite, { schema });
+
+  // Migrations ship next to this module: src/database/migrations when run from
+  // source (tsx) and dist/migrations after the build (see scripts/build.sh).
+  const migrationsFolder = path.join(__dirname, 'migrations');
+  try {
+    migrate(db, { migrationsFolder });
+    logger.info('Database migrations completed successfully');
+  } catch (err) {
+    logger.error({ err }, 'Failed to run database migrations');
+    throw err;
+  }
+
+  logger.info(`Database connected at ${dbPath}${config.database.wal ? ' (WAL mode)' : ''}`);
+  initialized = true;
+  return db;
 }
 
 export function closeDatabase(): void {
+  if (!initialized) return;
   sqlite.close();
+  initialized = false;
   logger.info('Database connection closed');
 }

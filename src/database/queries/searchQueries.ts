@@ -281,6 +281,7 @@ export function searchMessages(
   // Cursor pagination — validate format "timestampMs:id" before applying
   let cursorDate: Date | null = null;
   let cursorId: string | null = null;
+  let cursorCondition: SQL | undefined;
 
   if (pagination.cursor) {
     const sepIndex = pagination.cursor.indexOf(':');
@@ -291,11 +292,9 @@ export function searchMessages(
       if (!isNaN(tsNum) && cId) {
         cursorDate = new Date(tsNum);
         cursorId = cId;
-        conditions.push(
-          or(
-            lt(schema.messages.createdAt, cursorDate),
-            and(eq(schema.messages.createdAt, cursorDate), lt(schema.messages.id, cursorId))!
-          )!
+        cursorCondition = or(
+          lt(schema.messages.createdAt, cursorDate),
+          and(eq(schema.messages.createdAt, cursorDate), lt(schema.messages.id, cursorId))!
         );
       }
     }
@@ -306,8 +305,9 @@ export function searchMessages(
   if (!hasText) {
     let query = db.select().from(schema.messages).$dynamic();
 
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
+    const where = cursorCondition ? [...conditions, cursorCondition] : conditions;
+    if (where.length > 0) {
+      query = query.where(and(...where));
     }
 
     const rows = query
@@ -359,8 +359,9 @@ export function searchMessages(
 
   let query = db.select().from(schema.messages).$dynamic();
 
-  if (conditions.length > 0) {
-    query = query.where(and(...conditions));
+  const whereClauses = cursorCondition ? [...conditions, cursorCondition] : conditions;
+  if (whereClauses.length > 0) {
+    query = query.where(and(...whereClauses));
   }
 
   const rows = query
