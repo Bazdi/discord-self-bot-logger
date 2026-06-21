@@ -4,12 +4,15 @@ import { memberEvents } from '@/database/schema.js';
 import { logger } from '@/utils/logger.js';
 import { requireGuild } from '../guildFilter.js';
 import { broadcaster } from '@/dashboard/socket/broadcaster.js';
+import { enrichUser } from '@/services/enricher.js';
 
 async function onGuildMemberAdd(client: Client, member: GuildMember) {
   try {
     const guildId = member.guild.id;
     const userId = member.id;
     const createdAt = new Date();
+
+    if (member.user) enrichUser({ id: member.user.id, username: member.user.username, discriminator: member.user.discriminator, avatarURL: member.user.avatarURL.bind(member.user) as any, bot: member.user.bot });
 
     db.insert(memberEvents).values({
       guildId,
@@ -31,6 +34,8 @@ async function onGuildMemberRemove(client: Client, member: GuildMember | Partial
     const userId = member.id;
     const createdAt = new Date();
 
+    if (member.user) enrichUser({ id: member.user.id, username: member.user.username, discriminator: member.user.discriminator, avatarURL: member.user.avatarURL.bind(member.user) as any, bot: member.user.bot });
+
     db.insert(memberEvents).values({
       guildId,
       userId,
@@ -51,6 +56,8 @@ async function onGuildBanAdd(client: Client, ban: GuildBan) {
     const userId = ban.user.id;
     const createdAt = new Date();
 
+    enrichUser({ id: ban.user.id, username: ban.user.username, discriminator: ban.user.discriminator, avatarURL: ban.user.avatarURL.bind(ban.user) as any, bot: ban.user.bot });
+
     db.insert(memberEvents).values({
       guildId,
       userId,
@@ -70,6 +77,8 @@ async function onGuildBanRemove(client: Client, ban: GuildBan) {
     const guildId = ban.guild.id;
     const userId = ban.user.id;
     const createdAt = new Date();
+
+    enrichUser({ id: ban.user.id, username: ban.user.username, discriminator: ban.user.discriminator, avatarURL: ban.user.avatarURL.bind(ban.user) as any, bot: ban.user.bot });
 
     db.insert(memberEvents).values({
       guildId,
@@ -94,6 +103,8 @@ async function onGuildMemberUpdate(
     const guildId = newMember.guild.id;
     const userId = newMember.id;
     const createdAt = new Date();
+
+    if (newMember.user) enrichUser({ id: newMember.user.id, username: newMember.user.username, discriminator: newMember.user.discriminator, avatarURL: newMember.user.avatarURL.bind(newMember.user) as any, bot: newMember.user.bot });
 
     // Nick diff
     const oldNick = oldMember.nickname ?? null;
