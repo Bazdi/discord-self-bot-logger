@@ -142,12 +142,25 @@ export function getGuildAudit(
       .forEach((u) => targetUserMap.set(u.id, u.username));
   }
 
+  // Batch-resolve guild names
+  const guildIds = [...new Set(rows.map((r) => r.guildId))];
+  const guildMap = new Map<string, { name: string | null; iconUrl: string | null }>();
+  if (guildIds.length > 0) {
+    db.select({ id: schema.guilds.id, name: schema.guilds.name, iconUrl: schema.guilds.iconUrl })
+      .from(schema.guilds)
+      .where(inArray(schema.guilds.id, guildIds))
+      .all()
+      .forEach((g) => guildMap.set(g.id, { name: g.name, iconUrl: g.iconUrl }));
+  }
+
   return rows.map((r) => ({
     ...r,
     actorUsername: r.userId ? (actorMap.get(r.userId)?.username ?? null) : null,
     actorAvatarUrl: r.userId ? (actorMap.get(r.userId)?.avatarUrl ?? null) : null,
     targetChannelName: r.targetId ? (targetChannelMap.get(r.targetId) ?? null) : null,
     targetUsername: r.targetId ? (targetUserMap.get(r.targetId) ?? null) : null,
+    guildName: guildMap.get(r.guildId)?.name ?? null,
+    guildIconUrl: guildMap.get(r.guildId)?.iconUrl ?? null,
   }));
 }
 

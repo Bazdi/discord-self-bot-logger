@@ -78,6 +78,8 @@ interface AuditEvent {
   actorAvatarUrl?: string | null;
   targetChannelName?: string | null;
   targetUsername?: string | null;
+  guildName?: string | null;
+  guildIconUrl?: string | null;
 }
 
 export default function Activity() {
@@ -583,6 +585,7 @@ function AuditTable({
             <TableHeader>
               <TableRow>
                 <TableHead>Action</TableHead>
+                <TableHead>Server</TableHead>
                 <TableHead>By</TableHead>
                 <TableHead>Target / Changes</TableHead>
                 <TableHead className="text-right">Time</TableHead>
@@ -598,6 +601,13 @@ function AuditTable({
                     >
                       {row.actionType}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <GuildCell
+                      guildId={row.guildId}
+                      guildName={row.guildName}
+                      guildIconUrl={row.guildIconUrl}
+                    />
                   </TableCell>
                   <TableCell>
                     <UserCell

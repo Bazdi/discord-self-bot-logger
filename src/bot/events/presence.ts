@@ -3,6 +3,7 @@ import { db } from '@/database/index.js';
 import { presenceUpdates, latestPresences } from '@/database/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { broadcaster } from '@/dashboard/socket/broadcaster.js';
+import { enrichUser } from '@/services/enricher.js';
 
 /**
  * Record a presence change to the history table, upsert the latest
@@ -66,6 +67,16 @@ export function handlePresenceUpdate(
 
   const guildId = newPresence.guild?.id ?? null;
   const userId = newPresence.userId;
+
+  if (newPresence.user) {
+    enrichUser({
+      id: newPresence.user.id,
+      username: newPresence.user.username,
+      discriminator: newPresence.user.discriminator,
+      avatarURL: newPresence.user.avatarURL.bind(newPresence.user) as any,
+      bot: newPresence.user.bot,
+    });
+  }
   const status = newPresence.status ?? null;
   const clientStatus = newPresence.clientStatus ? JSON.stringify(newPresence.clientStatus) : null;
   const activities = newPresence.activities?.length ? JSON.stringify(newPresence.activities) : null;

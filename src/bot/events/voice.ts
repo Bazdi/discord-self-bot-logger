@@ -4,6 +4,7 @@ import { voiceEvents } from '@/database/schema.js';
 import { logger } from '@/utils/logger.js';
 import { requireGuild } from '../guildFilter.js';
 import { broadcaster } from '@/dashboard/socket/broadcaster.js';
+import { enrichUser } from '@/services/enricher.js';
 
 function determineVoiceEvent(
   oldState: VoiceState,
@@ -49,6 +50,17 @@ async function onVoiceStateUpdate(client: Client, oldState: VoiceState, newState
     if (type === 'UNKNOWN') return;
 
     const createdAt = new Date();
+
+    const member = newState.member ?? oldState.member;
+    if (member?.user) {
+      enrichUser({
+        id: member.user.id,
+        username: member.user.username,
+        discriminator: member.user.discriminator,
+        avatarURL: member.user.avatarURL.bind(member.user) as any,
+        bot: member.user.bot,
+      });
+    }
 
     db.insert(voiceEvents).values({
       guildId,
