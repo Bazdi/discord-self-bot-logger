@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Plus, X } from 'lucide-react';
+import { ArrowRight, CheckCheck, Plus, X } from 'lucide-react';
 import apiClient from '../api/client';
 import { GuildPicker } from '../components/GuildPicker';
 import { Button } from '@/components/ui/button';
@@ -116,6 +116,32 @@ export default function Setup() {
     }
   };
 
+  const selectedGuildCount = guilds.filter((g) => selected.has(g.id)).length;
+
+  const selectAll = async () => {
+    const previous = new Set(selected);
+    const next = new Set(selected);
+    for (const g of guilds) next.add(g.id);
+    setSelected(next);
+    try {
+      await persistSelection(next);
+    } catch {
+      setSelected(previous);
+    }
+  };
+
+  const deselectAll = async () => {
+    const previous = new Set(selected);
+    const guildIds = new Set(guilds.map((g) => g.id));
+    const next = new Set(Array.from(selected).filter((id) => !guildIds.has(id)));
+    setSelected(next);
+    try {
+      await persistSelection(next);
+    } catch {
+      setSelected(previous);
+    }
+  };
+
   return (
     <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
       {/* Page header */}
@@ -190,6 +216,38 @@ export default function Setup() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Bulk selection controls */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-medium">
+          Available Guilds
+          <span className="ml-1 font-normal text-muted-foreground">
+            · {selectedGuildCount} of {guilds.length} selected
+          </span>
+        </h2>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={selectAll}
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            disabled={loading || guilds.length === 0 || selectedGuildCount === guilds.length}
+          >
+            <CheckCheck className="size-4" />
+            Select all
+          </Button>
+          <Button
+            onClick={deselectAll}
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            disabled={loading || selectedGuildCount === 0}
+          >
+            <X className="size-4" />
+            Deselect all
+          </Button>
+        </div>
       </div>
 
       {/* Guild picker grid */}

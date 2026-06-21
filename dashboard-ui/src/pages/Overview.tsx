@@ -55,6 +55,11 @@ interface RecentMessage {
   } | null;
 }
 
+interface GuildInfo {
+  name: string;
+  icon?: string | null;
+}
+
 interface DailyCount {
   day: string;
   count: number;
@@ -93,18 +98,21 @@ export default function Overview() {
   const [recent, setRecent] = useState<RecentMessage[]>([]);
   const [stats, setStats] = useState<OverviewStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [guildMap, setGuildMap] = useState<Map<string, GuildInfo>>(new Map());
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [healthRes, messagesRes, statsRes] = await Promise.all([
+        const [healthRes, messagesRes, statsRes, guildsRes] = await Promise.all([
           apiClient.get<HealthStats>('/health'),
           apiClient.get<{ data: RecentMessage[] }>('/messages?limit=8'),
           apiClient.get<OverviewStats>('/stats/overview?range=30d'),
+          apiClient.get<Array<{ id: string; name: string; icon?: string | null }>>('/guilds'),
         ]);
         setHealth(healthRes.data);
         setRecent(messagesRes.data.data);
         setStats(statsRes.data);
+        setGuildMap(new Map(guildsRes.data.map((g) => [g.id, { name: g.name, icon: g.icon }])));
       } catch (err) {
         console.error(err);
       } finally {
@@ -336,7 +344,11 @@ export default function Overview() {
           ) : (
             <div className="flex flex-col divide-y">
               {recent.map((msg) => (
-                <MessageRow key={msg.id} message={msg} />
+                <MessageRow
+                  key={msg.id}
+                  message={msg}
+                  guild={msg.guildId ? guildMap.get(msg.guildId) : undefined}
+                />
               ))}
             </div>
           )}
@@ -362,7 +374,7 @@ export default function Overview() {
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
-function MessageRow({ message }: { message: RecentMessage }) {
+function MessageRow({ message, guild }: { message: RecentMessage; guild?: GuildInfo }) {
   const username = message.author?.username ?? `User ${message.authorId.slice(-4)}`;
   const initials = username.slice(0, 2).toUpperCase();
   const content = message.content?.trim() || '(no text content)';
@@ -380,6 +392,12 @@ function MessageRow({ message }: { message: RecentMessage }) {
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium truncate">{username}</span>
+          {guild?.name && (
+            <Badge variant="outline" className="flex max-w-[45%] shrink-0 items-center gap-1 text-xs">
+              <Server className="size-3 shrink-0" />
+              <span className="truncate">{guild.name}</span>
+            </Badge>
+          )}
           {message.channelId && (
             <Badge variant="secondary" className="text-xs shrink-0">
               #{message.channelId.slice(-4)}
