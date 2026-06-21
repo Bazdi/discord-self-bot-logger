@@ -4,7 +4,7 @@ import { voiceEvents } from '@/database/schema.js';
 import { logger } from '@/utils/logger.js';
 import { requireGuild } from '../guildFilter.js';
 import { broadcaster } from '@/dashboard/socket/broadcaster.js';
-import { enrichUser } from '@/services/enricher.js';
+import { enrichUser, enrichChannel } from '@/services/enricher.js';
 
 function determineVoiceEvent(
   oldState: VoiceState,
@@ -52,14 +52,31 @@ async function onVoiceStateUpdate(client: Client, oldState: VoiceState, newState
     const createdAt = new Date();
 
     const member = newState.member ?? oldState.member;
-    if (member?.user) {
+    const user = member?.user ?? client.users.cache.get(userId) ?? null;
+    if (user) {
       enrichUser({
-        id: member.user.id,
-        username: member.user.username,
-        discriminator: member.user.discriminator,
-        avatarURL: member.user.avatarURL.bind(member.user) as any,
-        bot: member.user.bot,
+        id: user.id,
+        username: user.username,
+        discriminator: user.discriminator,
+        avatarURL: user.avatarURL.bind(user) as any,
+        bot: user.bot,
       });
+    }
+
+    // Enrich both the old and new channel so voice channels appear in the channels table
+    for (const state of [oldState, newState]) {
+      const ch = state.channel as any;
+      if (ch) {
+        enrichChannel({
+          id: ch.id,
+          name: ch.name ?? null,
+          type: ch.type,
+          guildId,
+          topic: null,
+          nsfw: ch.nsfw ?? false,
+          parentId: ch.parentId ?? null,
+        });
+      }
     }
 
     db.insert(voiceEvents).values({

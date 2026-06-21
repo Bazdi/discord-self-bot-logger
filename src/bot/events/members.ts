@@ -34,7 +34,8 @@ async function onGuildMemberRemove(client: Client, member: GuildMember | Partial
     const userId = member.id;
     const createdAt = new Date();
 
-    if (member.user) enrichUser({ id: member.user.id, username: member.user.username, discriminator: member.user.discriminator, avatarURL: member.user.avatarURL.bind(member.user) as any, bot: member.user.bot });
+    const user = member.user ?? client.users.cache.get(userId) ?? null;
+    if (user) enrichUser({ id: user.id, username: user.username, discriminator: user.discriminator, avatarURL: user.avatarURL.bind(user) as any, bot: user.bot });
 
     db.insert(memberEvents).values({
       guildId,
@@ -104,7 +105,8 @@ async function onGuildMemberUpdate(
     const userId = newMember.id;
     const createdAt = new Date();
 
-    if (newMember.user) enrichUser({ id: newMember.user.id, username: newMember.user.username, discriminator: newMember.user.discriminator, avatarURL: newMember.user.avatarURL.bind(newMember.user) as any, bot: newMember.user.bot });
+    const updateUser = newMember.user ?? client.users.cache.get(newMember.id) ?? null;
+    if (updateUser) enrichUser({ id: updateUser.id, username: updateUser.username, discriminator: updateUser.discriminator, avatarURL: updateUser.avatarURL.bind(updateUser) as any, bot: updateUser.bot });
 
     // Nick diff
     const oldNick = oldMember.nickname ?? null;
