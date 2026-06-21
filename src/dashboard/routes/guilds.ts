@@ -61,13 +61,26 @@ router.get('/:id', async (req, res, next) => {
 
 router.get('/:id/channels', async (req, res, next) => {
   try {
+    const gId = req.params.id;
+    // Primary source: channels table (has name + type).
+    // Fallback: distinct channel IDs seen in messages that were never stored
+    // in the channels table (e.g. because the channel event wasn't captured).
     const rows = db.all<{ id: string; name: string | null; type: number | null; messageCount: number }>(sql`
       SELECT c.id, c.name, c.type, count(m.id) AS messageCount
       FROM channels c
       LEFT JOIN messages m ON m.channel_id = c.id
-      WHERE c.guild_id = ${req.params.id}
+      WHERE c.guild_id = ${gId}
       GROUP BY c.id
-      ORDER BY c.name
+
+      UNION ALL
+
+      SELECT m.channel_id AS id, NULL AS name, NULL AS type, count(*) AS messageCount
+      FROM messages m
+      WHERE m.guild_id = ${gId}
+        AND NOT EXISTS (SELECT 1 FROM channels WHERE id = m.channel_id AND guild_id = ${gId})
+      GROUP BY m.channel_id
+
+      ORDER BY messageCount DESC, name ASC
     `);
 
     res.json(

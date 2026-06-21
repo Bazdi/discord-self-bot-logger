@@ -6,14 +6,15 @@ import {
   ArrowLeft,
   Volume2,
   Radio,
+  Settings,
 } from 'lucide-react';
 import apiClient from '../api/client';
 import { useGuildSocket } from '../socket/hooks';
 
 interface ChannelItem {
   id: string;
-  name: string;
-  type: number;
+  name: string | null;
+  type: number | null;
   messageCount: number;
 }
 
@@ -51,8 +52,12 @@ export default function GuildView() {
     fetchData();
   }, [id]);
 
-  const textChannels = channels.filter((c) => c.type === 0);
-  const voiceChannels = channels.filter((c) => c.type === 2);
+  // type 0 = text, 5 = announcement, 15 = forum, null = unknown (treat as text)
+  const textChannels = channels.filter(
+    (c) => c.type === 0 || c.type === 5 || c.type === 15 || c.type == null
+  );
+  // type 2 = voice, 13 = stage
+  const voiceChannels = channels.filter((c) => c.type === 2 || c.type === 13);
 
   return (
     <div className="p-6 space-y-6 overflow-y-auto">
@@ -73,6 +78,20 @@ export default function GuildView() {
 
       {loading ? (
         <div className="text-sm text-gray-500">Loading channels...</div>
+      ) : channels.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-gray-700 p-10 text-center">
+          <Settings className="w-8 h-8 text-gray-600" />
+          <div>
+            <p className="text-sm font-medium text-gray-300">No data logged for this server yet</p>
+            <p className="mt-1 text-xs text-gray-500">
+              Add this server in{' '}
+              <Link to="/setup" className="text-blue-400 hover:underline">
+                Setup
+              </Link>{' '}
+              to start capturing messages and channels.
+            </p>
+          </div>
+        </div>
       ) : (
         <>
           <div className="bg-gray-900 border border-gray-800 rounded-xl">
@@ -90,7 +109,9 @@ export default function GuildView() {
                 >
                   <div className="flex items-center gap-3">
                     <MessageSquare className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm font-medium">{ch.name}</span>
+                    <span className="text-sm font-medium">
+                      {ch.name ?? `#${ch.id.slice(-6)}`}
+                    </span>
                   </div>
                   <span className="text-xs text-gray-500">{ch.messageCount} msgs</span>
                 </Link>
@@ -115,7 +136,9 @@ export default function GuildView() {
                 >
                   <div className="flex items-center gap-3">
                     <Radio className="w-4 h-4" />
-                    <span className="text-sm font-medium">{ch.name}</span>
+                    <span className="text-sm font-medium">
+                      {ch.name ?? `#${ch.id.slice(-6)}`}
+                    </span>
                   </div>
                   <span className="text-xs text-gray-500">{ch.messageCount} msgs</span>
                 </div>

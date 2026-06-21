@@ -51,7 +51,11 @@ export default function Guilds() {
             const initials = guild.name.slice(0, 2).toUpperCase();
             return (
               <Link key={guild.id} to={`/guilds/${guild.id}`}>
-                <Card className="h-full cursor-pointer transition-all hover:border-muted-foreground/40 hover:shadow-sm">
+                <Card
+                  className={`h-full cursor-pointer transition-all hover:border-muted-foreground/40 hover:shadow-sm ${
+                    guild.messageCount === 0 ? 'opacity-60' : ''
+                  }`}
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <Avatar className="h-12 w-12 shrink-0 rounded-xl">
@@ -75,7 +79,9 @@ export default function Guilds() {
                           </span>
                           <span className="flex items-center gap-1">
                             <MessageSquare className="size-3 shrink-0" />
-                            {guild.messageCount.toLocaleString()}
+                            {guild.messageCount === 0
+                              ? 'not tracked'
+                              : guild.messageCount.toLocaleString()}
                           </span>
                         </div>
                       </div>
