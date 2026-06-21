@@ -15,6 +15,11 @@ import type { Filter } from '@/shared/filters.js';
 
 const router = Router();
 
+const boolParam = z
+  .string()
+  .optional()
+  .transform((v) => (v === 'true' ? true : v === 'false' ? false : undefined));
+
 const querySchema = z.object({
   guild: z.string().optional(),
   channel: z.string().optional(),
@@ -24,6 +29,11 @@ const querySchema = z.object({
   search: z.string().optional(),
   limit: z.coerce.number().min(1).max(100).default(50),
   cursor: z.string().optional(),
+  deleted: boolParam,
+  edited: boolParam,
+  hasAttachment: boolParam,
+  hasEmbed: boolParam,
+  hasReaction: boolParam,
 });
 
 router.get('/', async (req, res, next) => {
@@ -35,6 +45,11 @@ router.get('/', async (req, res, next) => {
       authorId: query.author,
       before: query.before ? new Date(query.before) : undefined,
       after: query.after ? new Date(query.after) : undefined,
+      isDeleted: query.deleted,
+      isEdited: query.edited,
+      hasAttachment: query.hasAttachment,
+      hasEmbed: query.hasEmbed,
+      hasReaction: query.hasReaction,
     };
     const pagination = { limit: query.limit, cursor: query.cursor };
 

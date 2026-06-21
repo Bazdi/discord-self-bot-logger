@@ -112,7 +112,7 @@ export default function UserProfile() {
           <img src={user.avatarUrl} alt={user.username} className="w-16 h-16 rounded-full" />
         ) : (
           <div className="w-16 h-16 rounded-full bg-discord-blurple flex items-center justify-center text-xl font-bold">
-            {user.username.charAt(0).toUpperCase()}
+            {user.username?.charAt(0).toUpperCase() ?? '?'}
           </div>
         )}
         <div>

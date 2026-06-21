@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Trash2, Pencil, Paperclip, Smile, LayoutList } from 'lucide-react';
 import apiClient from '../api/client';
 import { useChannelSocket } from '../socket/hooks';
 import { MessageCard } from '../components/MessageCard';
@@ -30,6 +30,22 @@ interface FeedMessage {
   } | null;
 }
 
+type FilterState = {
+  deleted: boolean;
+  edited: boolean;
+  hasAttachment: boolean;
+  hasEmbed: boolean;
+  hasReaction: boolean;
+};
+
+const FILTER_DEFAULTS: FilterState = {
+  deleted: false,
+  edited: false,
+  hasAttachment: false,
+  hasEmbed: false,
+  hasReaction: false,
+};
+
 export default function ChannelFeed() {
   const { id: guildId, channelId } = useParams<{ id: string; channelId: string }>();
   const [messages, setMessages] = useState<FeedMessage[]>([]);
@@ -37,6 +53,9 @@ export default function ChannelFeed() {
   const [loading, setLoading] = useState(false);
   const loadingRef = useRef(false);
   const [hasMore, setHasMore] = useState(true);
+  const [filters, setFilters] = useState<FilterState>(FILTER_DEFAULTS);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
   const scrollRef = useRef<HTMLDivElement>(null);
   const { liveMessages, typingUsers } = useChannelSocket(channelId);
 
@@ -45,11 +64,17 @@ export default function ChannelFeed() {
       if (!channelId || loadingRef.current) return;
       loadingRef.current = true;
       setLoading(true);
+      const f = filtersRef.current;
       try {
         const params = new URLSearchParams();
         params.set('channel', channelId);
         params.set('limit', '50');
         if (afterCursor) params.set('cursor', afterCursor);
+        if (f.deleted) params.set('deleted', 'true');
+        if (f.edited) params.set('edited', 'true');
+        if (f.hasAttachment) params.set('hasAttachment', 'true');
+        if (f.hasEmbed) params.set('hasEmbed', 'true');
+        if (f.hasReaction) params.set('hasReaction', 'true');
         const res = await apiClient.get<{ data: FeedMessage[]; nextCursor: string | null }>(
           `/messages?${params.toString()}`
         );
@@ -75,7 +100,7 @@ export default function ChannelFeed() {
     setCursor(null);
     setHasMore(true);
     fetchMessages(null);
-  }, [channelId, fetchMessages]);
+  }, [channelId, fetchMessages, filters]);
 
   // Merge live messages
   useEffect(() => {
@@ -99,26 +124,67 @@ export default function ChannelFeed() {
     }
   }, [cursor, fetchMessages, hasMore, loading]);
 
+  const toggleFilter = (key: keyof FilterState) => {
+    setFilters((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-gray-800 flex items-center gap-3 bg-gray-900">
-        <Link
-          to={`/guilds/${guildId}`}
-          className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </Link>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-bold truncate">Channel Feed</h1>
-          <p className="text-xs text-gray-400">{messages.length} messages loaded</p>
+      <div className="p-4 border-b border-gray-800 bg-gray-900 space-y-3">
+        <div className="flex items-center gap-3">
+          <Link
+            to={`/guilds/${guildId}`}
+            className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-bold truncate">Channel Feed</h1>
+            <p className="text-xs text-gray-400">
+              {messages.length} messages{activeFilterCount > 0 ? ` · ${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''} active` : ''}
+            </p>
+          </div>
+          <button
+            onClick={() => { setFilters(FILTER_DEFAULTS); fetchMessages(null); }}
+            disabled={activeFilterCount === 0}
+            className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors disabled:opacity-30 text-xs"
+            title="Clear filters"
+          >
+            <LayoutList className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => fetchMessages(null)}
+            disabled={loading}
+            className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
-        <button
-          onClick={() => fetchMessages(null)}
-          disabled={loading}
-          className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              { key: 'deleted',      label: 'Deleted',     Icon: Trash2     },
+              { key: 'edited',       label: 'Edited',      Icon: Pencil     },
+              { key: 'hasAttachment',label: 'Attachment',  Icon: Paperclip  },
+              { key: 'hasReaction',  label: 'Reaction',    Icon: Smile      },
+            ] as const
+          ).map(({ key, label, Icon }) => (
+            <button
+              key={key}
+              onClick={() => toggleFilter(key)}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                filters[key]
+                  ? 'bg-discord-blurple text-white'
+                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
+              }`}
+            >
+              <Icon className="w-3 h-3" />
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div
