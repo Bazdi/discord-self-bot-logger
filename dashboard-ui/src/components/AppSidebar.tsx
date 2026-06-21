@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Activity,
@@ -9,6 +10,7 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
+import apiClient from '../api/client';
 
 import {
   Sidebar,
@@ -32,6 +34,7 @@ const monitorNav = [
 ];
 
 const exploreNav = [
+  { to: '/guilds', icon: Server, label: 'Servers' },
   { to: '/users', icon: Users, label: 'Users' },
   { to: '/setup', icon: MonitorCog, label: 'Setup' },
 ];
@@ -42,6 +45,15 @@ export function AppSidebar() {
   const location = useLocation();
   const { status } = useSocketContext();
   const guildId = getGuildId(location.pathname);
+  const [guildName, setGuildName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!guildId) { setGuildName(null); return; }
+    apiClient
+      .get<{ name: string }>(`/guilds/${guildId}`)
+      .then((res) => setGuildName(res.data.name))
+      .catch(() => setGuildName(null));
+  }, [guildId]);
 
   const isConnected = status === 'connected';
 
@@ -121,7 +133,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild tooltip="Guild workspace">
                     <Link to={`/guilds/${guildId}`}>
                       <Server />
-                      <span className="truncate">Guild {guildId}</span>
+                      <span className="truncate">{guildName ?? `Guild ${guildId}`}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

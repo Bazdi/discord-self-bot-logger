@@ -45,6 +45,7 @@ interface RecentMessage {
   id: string;
   guildId?: string | null;
   channelId: string;
+  channelName?: string | null;
   authorId: string;
   content?: string | null;
   createdAt: string | number;
@@ -400,7 +401,7 @@ function MessageRow({ message, guild }: { message: RecentMessage; guild?: GuildI
           )}
           {message.channelId && (
             <Badge variant="secondary" className="text-xs shrink-0">
-              #{message.channelId.slice(-4)}
+              #{message.channelName ?? message.channelId.slice(-4)}
             </Badge>
           )}
         </div>

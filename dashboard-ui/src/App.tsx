@@ -13,6 +13,7 @@ import Users from './pages/Users';
 import Activity from './pages/Activity';
 import Stats from './pages/Stats';
 import Settings from './pages/Settings';
+import Guilds from './pages/Guilds';
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
@@ -59,6 +60,7 @@ export default function App() {
             <Route element={<Layout />}>
               <Route path="/" element={<Overview />} />
               <Route path="/setup" element={<Setup />} />
+              <Route path="/guilds" element={<Guilds />} />
               <Route path="/guilds/:id" element={<GuildView />} />
               <Route path="/guilds/:id/channels/:channelId" element={<ChannelFeed />} />
               <Route path="/search" element={<Search />} />

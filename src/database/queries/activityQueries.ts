@@ -1,4 +1,4 @@
-import { eq, and, desc, type SQL } from 'drizzle-orm';
+import { eq, and, desc, inArray, type SQL } from 'drizzle-orm';
 import { db } from '../index.js';
 import * as schema from '../schema.js';
 
@@ -110,7 +110,45 @@ export function getGuildAudit(
 
   let query = db.select().from(schema.guildAudit).$dynamic();
   if (conditions.length > 0) query = query.where(and(...conditions));
-  return query.orderBy(desc(schema.guildAudit.createdAt)).limit(limit).all();
+  const rows = query.orderBy(desc(schema.guildAudit.createdAt)).limit(limit).all();
+
+  if (rows.length === 0) return [];
+
+  // Batch-resolve actor usernames
+  const actorIds = [...new Set(rows.map((r) => r.userId).filter((id): id is string => id != null))];
+  const actorMap = new Map<string, { username: string | null; avatarUrl: string | null }>();
+  if (actorIds.length > 0) {
+    db.select({ id: schema.users.id, username: schema.users.username, avatarUrl: schema.users.avatarUrl })
+      .from(schema.users)
+      .where(inArray(schema.users.id, actorIds))
+      .all()
+      .forEach((u) => actorMap.set(u.id, { username: u.username, avatarUrl: u.avatarUrl }));
+  }
+
+  // Batch-resolve targets (channels and users, same IDs checked in both tables)
+  const targetIds = [...new Set(rows.map((r) => r.targetId).filter((id): id is string => id != null))];
+  const targetChannelMap = new Map<string, string | null>();
+  const targetUserMap = new Map<string, string | null>();
+  if (targetIds.length > 0) {
+    db.select({ id: schema.channels.id, name: schema.channels.name })
+      .from(schema.channels)
+      .where(inArray(schema.channels.id, targetIds))
+      .all()
+      .forEach((c) => targetChannelMap.set(c.id, c.name));
+    db.select({ id: schema.users.id, username: schema.users.username })
+      .from(schema.users)
+      .where(inArray(schema.users.id, targetIds))
+      .all()
+      .forEach((u) => targetUserMap.set(u.id, u.username));
+  }
+
+  return rows.map((r) => ({
+    ...r,
+    actorUsername: r.userId ? (actorMap.get(r.userId)?.username ?? null) : null,
+    actorAvatarUrl: r.userId ? (actorMap.get(r.userId)?.avatarUrl ?? null) : null,
+    targetChannelName: r.targetId ? (targetChannelMap.get(r.targetId) ?? null) : null,
+    targetUsername: r.targetId ? (targetUserMap.get(r.targetId) ?? null) : null,
+  }));
 }
 
 /* ------------------------------------------------------------------ */

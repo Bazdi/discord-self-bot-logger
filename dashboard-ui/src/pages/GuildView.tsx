@@ -58,7 +58,7 @@ export default function GuildView() {
     <div className="p-6 space-y-6 overflow-y-auto">
       <div className="flex items-center gap-3">
         <Link
-          to="/"
+          to="/guilds"
           className="p-2 rounded-lg bg-gray-900 border border-gray-800 hover:bg-gray-800 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

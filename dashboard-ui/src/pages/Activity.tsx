@@ -72,7 +72,12 @@ interface AuditEvent {
   targetType?: string | null;
   userId?: string | null;
   reason?: string | null;
+  changesJson?: string | null;
   createdAt: TimestampValue;
+  actorUsername?: string | null;
+  actorAvatarUrl?: string | null;
+  targetChannelName?: string | null;
+  targetUsername?: string | null;
 }
 
 export default function Activity() {
@@ -498,6 +503,59 @@ function PresenceTable({
   );
 }
 
+function summarizeChanges(changesJson?: string | null): string | null {
+  if (!changesJson) return null;
+  try {
+    const changes = JSON.parse(changesJson) as Record<string, { old?: unknown; new?: unknown }>;
+    return Object.entries(changes)
+      .map(([field, val]) => {
+        const o = val?.old;
+        const n = val?.new;
+        if (o !== undefined && n !== undefined) return `${field}: "${String(o)}" → "${String(n)}"`;
+        if (n !== undefined) return `${field}: "${String(n)}"`;
+        if (o !== undefined) return `${field}: removed "${String(o)}"`;
+        return field;
+      })
+      .join(' · ');
+  } catch {
+    return null;
+  }
+}
+
+function AuditTarget({ row }: { row: AuditEvent }) {
+  const channelName = row.targetChannelName;
+  const username = row.targetUsername;
+  const changesSummary = summarizeChanges(row.changesJson);
+
+  const label = channelName
+    ? `#${channelName}`
+    : username
+      ? `@${username}`
+      : row.targetId
+        ? row.targetId.slice(-8)
+        : null;
+
+  return (
+    <div className="flex flex-col gap-0.5 min-w-0">
+      {label ? (
+        <span className="text-sm font-medium truncate">{label}</span>
+      ) : (
+        <span className="text-muted-foreground/40">—</span>
+      )}
+      {changesSummary && (
+        <span className="text-xs text-muted-foreground truncate max-w-[220px]" title={changesSummary}>
+          {changesSummary}
+        </span>
+      )}
+      {row.reason && (
+        <span className="text-xs text-muted-foreground/70 italic truncate max-w-[220px]">
+          {row.reason}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function AuditTable({
   data,
   loading,
@@ -525,8 +583,8 @@ function AuditTable({
             <TableHeader>
               <TableRow>
                 <TableHead>Action</TableHead>
-                <TableHead>Target</TableHead>
                 <TableHead>By</TableHead>
+                <TableHead>Target / Changes</TableHead>
                 <TableHead className="text-right">Time</TableHead>
               </TableRow>
             </TableHeader>
@@ -541,15 +599,15 @@ function AuditTable({
                       {row.actionType}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {row.targetId ?? (
-                      <span className="text-muted-foreground/40">—</span>
-                    )}
+                  <TableCell>
+                    <UserCell
+                      userId={row.userId ?? ''}
+                      username={row.actorUsername}
+                      avatarUrl={row.actorAvatarUrl}
+                    />
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {row.userId ?? (
-                      <span className="text-muted-foreground/40">—</span>
-                    )}
+                  <TableCell>
+                    <AuditTarget row={row} />
                   </TableCell>
                   <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                     {formatDateTime(row.createdAt)}

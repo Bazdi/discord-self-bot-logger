@@ -29,7 +29,7 @@ export interface MessageWithAuthor {
 }
 
 export interface PaginatedMessages {
-  data: ((typeof schema.messages.$inferSelect) & MessageWithAuthor)[];
+  data: ((typeof schema.messages.$inferSelect) & MessageWithAuthor & { channelName: string | null })[];
   nextCursor: string | null;
 }
 

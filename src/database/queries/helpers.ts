@@ -16,6 +16,31 @@ import * as schema from '../schema.js';
 import type { MessageFilters, MessageWithAuthor } from './types.js';
 
 /* ------------------------------------------------------------------ */
+/*  Channel name hydration                                             */
+/* ------------------------------------------------------------------ */
+
+export function attachChannelNames<T extends { channelId: string }>(
+  messages: T[]
+): (T & { channelName: string | null })[] {
+  if (messages.length === 0) return [];
+
+  const channelIds = [...new Set(messages.map((m) => m.channelId))];
+  if (channelIds.length === 0) return messages.map((m) => ({ ...m, channelName: null }));
+
+  const rows = db
+    .select({ id: schema.channels.id, name: schema.channels.name })
+    .from(schema.channels)
+    .where(inArray(schema.channels.id, channelIds))
+    .all();
+
+  const channelMap = new Map(rows.map((c) => [c.id, c.name]));
+  return messages.map((m) => ({
+    ...m,
+    channelName: channelMap.get(m.channelId) ?? null,
+  }));
+}
+
+/* ------------------------------------------------------------------ */
 /*  Like helpers                                                       */
 /* ------------------------------------------------------------------ */
 

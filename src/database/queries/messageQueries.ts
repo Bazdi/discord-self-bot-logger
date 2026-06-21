@@ -1,7 +1,7 @@
 import { eq, and, or, lt, gt, desc, asc } from 'drizzle-orm';
 import { db } from '../index.js';
 import * as schema from '../schema.js';
-import { buildMessageConditions, attachAuthors, paginateMessages } from './helpers.js';
+import { buildMessageConditions, attachAuthors, attachChannelNames, paginateMessages } from './helpers.js';
 import type { MessageFilters, Pagination, PaginatedMessages, MessageDetail } from './types.js';
 
 /* ------------------------------------------------------------------ */
@@ -39,7 +39,7 @@ export function getMessages(
     .all();
 
   const { data, nextCursor } = paginateMessages(rows, limit);
-  return { data: attachAuthors(data), nextCursor };
+  return { data: attachChannelNames(attachAuthors(data)), nextCursor };
 }
 
 /* ------------------------------------------------------------------ */
