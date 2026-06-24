@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { config, updateConfigGuilds, updateConfigDm, updateConfigRetention } from '@/config/loader.js';
+import { config, updateConfigGuilds, updateConfigDm, updateConfigRetention, updateConfigField } from '@/config/loader.js';
 import { logger } from '@/utils/logger.js';
 
 const router = Router();
@@ -54,6 +54,36 @@ router.post('/logging/retention', async (req, res, next) => {
     await updateConfigRetention(days);
     logger.info({ days }, 'Updated retention days');
     res.json({ success: true, retentionDays: days });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/watch-users', async (req, res, next) => {
+  try {
+    const { userIds } = req.body as { userIds?: string[] };
+    if (!Array.isArray(userIds) || !userIds.every((id) => typeof id === 'string')) {
+      res.status(400).json({ error: 'userIds must be an array of strings' });
+      return;
+    }
+    updateConfigField('logging.watchUsers', userIds);
+    logger.info({ userIds }, 'Updated watched users list');
+    res.json({ success: true, watchUsers: userIds });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/watch-channels', async (req, res, next) => {
+  try {
+    const { channelIds } = req.body as { channelIds?: string[] };
+    if (!Array.isArray(channelIds) || !channelIds.every((id) => typeof id === 'string')) {
+      res.status(400).json({ error: 'channelIds must be an array of strings' });
+      return;
+    }
+    updateConfigField('logging.watchChannels', channelIds);
+    logger.info({ channelIds }, 'Updated watched channels list');
+    res.json({ success: true, watchChannels: channelIds });
   } catch (err) {
     next(err);
   }

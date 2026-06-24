@@ -61,6 +61,16 @@ export default function Setup() {
   const [manualInput, setManualInput] = useState('');
   const [manualError, setManualError] = useState<string | null>(null);
 
+  // Watched users
+  const [watchUsers, setWatchUsers] = useState<string[]>([]);
+  const [watchUserInput, setWatchUserInput] = useState('');
+  const [watchUserError, setWatchUserError] = useState<string | null>(null);
+
+  // Watched channels
+  const [watchChannels, setWatchChannels] = useState<string[]>([]);
+  const [watchChannelInput, setWatchChannelInput] = useState('');
+  const [watchChannelError, setWatchChannelError] = useState<string | null>(null);
+
   // Backfill settings
   const [perRequest, setPerRequest] = useState(100);
   const [delayMs, setDelayMs] = useState(1500);
@@ -98,6 +108,8 @@ export default function Setup() {
         setGuilds(guildsRes.data);
         const active = new Set(configRes.data.logging?.guilds ?? []);
         setSelected(active);
+        setWatchUsers((configRes.data.logging as any)?.watchUsers ?? []);
+        setWatchChannels((configRes.data.logging as any)?.watchChannels ?? []);
         const bf = configRes.data.logging?.backfill;
         if (bf?.perRequest) setPerRequest(bf.perRequest);
         if (bf?.delayMs !== undefined) setDelayMs(bf.delayMs);
@@ -227,6 +239,44 @@ export default function Setup() {
 
   const trackedGuilds = guilds.filter((g) => selected.has(g.id));
 
+  const snowflakeRe = /^\d{17,20}$/;
+
+  const addWatchUser = async () => {
+    const id = watchUserInput.trim();
+    if (!id) { setWatchUserError('Enter a user ID'); return; }
+    if (!snowflakeRe.test(id)) { setWatchUserError('Invalid ID format (17–20 digits)'); return; }
+    if (watchUsers.includes(id)) { setWatchUserError('Already in the list'); return; }
+    const next = [...watchUsers, id];
+    setWatchUsers(next); setWatchUserInput(''); setWatchUserError(null);
+    try { await apiClient.post('/config/watch-users', { userIds: next }); }
+    catch { setWatchUsers(watchUsers); setWatchUserError('Failed to save'); }
+  };
+
+  const removeWatchUser = async (id: string) => {
+    const next = watchUsers.filter((u) => u !== id);
+    setWatchUsers(next);
+    try { await apiClient.post('/config/watch-users', { userIds: next }); }
+    catch { setWatchUsers(watchUsers); }
+  };
+
+  const addWatchChannel = async () => {
+    const id = watchChannelInput.trim();
+    if (!id) { setWatchChannelError('Enter a channel ID'); return; }
+    if (!snowflakeRe.test(id)) { setWatchChannelError('Invalid ID format (17–20 digits)'); return; }
+    if (watchChannels.includes(id)) { setWatchChannelError('Already in the list'); return; }
+    const next = [...watchChannels, id];
+    setWatchChannels(next); setWatchChannelInput(''); setWatchChannelError(null);
+    try { await apiClient.post('/config/watch-channels', { channelIds: next }); }
+    catch { setWatchChannels(watchChannels); setWatchChannelError('Failed to save'); }
+  };
+
+  const removeWatchChannel = async (id: string) => {
+    const next = watchChannels.filter((c) => c !== id);
+    setWatchChannels(next);
+    try { await apiClient.post('/config/watch-channels', { channelIds: next }); }
+    catch { setWatchChannels(watchChannels); }
+  };
+
   return (
     <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
       {/* Page header */}
@@ -310,6 +360,88 @@ export default function Setup() {
       ) : (
         <GuildPicker guilds={guilds} selected={selected} onToggle={toggleGuild} />
       )}
+
+      {/* ── Watched Users ────────────────────────────────────────────── */}
+      <div className="rounded-xl border border-border bg-card">
+        <div className="p-4 border-b border-border">
+          <h2 className="font-semibold">Watched Users</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Only log presence for these user IDs. Leave empty to log all users in tracked servers.
+          </p>
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <Input
+              placeholder="Discord user ID (17–20 digits)..."
+              value={watchUserInput}
+              onChange={(e) => { setWatchUserInput(e.target.value); setWatchUserError(null); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addWatchUser(); } }}
+              className="max-w-sm"
+            />
+            <Button onClick={addWatchUser} size="sm" className="gap-1.5">
+              <Plus className="size-4" />
+              Add
+            </Button>
+          </div>
+          {watchUserError && <p className="text-xs text-destructive">{watchUserError}</p>}
+          {watchUsers.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {watchUsers.map((id) => (
+                <div key={id} className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs font-mono">
+                  {id}
+                  <button onClick={() => removeWatchUser(id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                    <X className="size-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {watchUsers.length === 0 && (
+            <p className="text-xs text-muted-foreground/60">No users watched — all presence updates are logged.</p>
+          )}
+        </div>
+      </div>
+
+      {/* ── Watched Channels ─────────────────────────────────────────── */}
+      <div className="rounded-xl border border-border bg-card">
+        <div className="p-4 border-b border-border">
+          <h2 className="font-semibold">Watched Channels</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Only log channel name/topic changes for these channel IDs. Leave empty to log all channels.
+          </p>
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <Input
+              placeholder="Discord channel ID (17–20 digits)..."
+              value={watchChannelInput}
+              onChange={(e) => { setWatchChannelInput(e.target.value); setWatchChannelError(null); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addWatchChannel(); } }}
+              className="max-w-sm"
+            />
+            <Button onClick={addWatchChannel} size="sm" className="gap-1.5">
+              <Plus className="size-4" />
+              Add
+            </Button>
+          </div>
+          {watchChannelError && <p className="text-xs text-destructive">{watchChannelError}</p>}
+          {watchChannels.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {watchChannels.map((id) => (
+                <div key={id} className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs font-mono">
+                  {id}
+                  <button onClick={() => removeWatchChannel(id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                    <X className="size-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {watchChannels.length === 0 && (
+            <p className="text-xs text-muted-foreground/60">No channels watched — all channel changes are logged.</p>
+          )}
+        </div>
+      </div>
 
       {/* ── History Backfill ──────────────────────────────────────────── */}
       <div className="rounded-xl border border-border bg-card">

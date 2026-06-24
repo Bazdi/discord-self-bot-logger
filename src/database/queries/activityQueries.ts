@@ -1,4 +1,4 @@
-import { eq, and, desc, inArray, type SQL } from 'drizzle-orm';
+import { eq, and, desc, asc, inArray, type SQL } from 'drizzle-orm';
 import { db } from '../index.js';
 import * as schema from '../schema.js';
 import { roles } from '../schema.js';
@@ -198,4 +198,36 @@ export function getActivityEvents(
     case 'audit':
       return getGuildAudit(guildId, undefined, userId, limit);
   }
+}
+
+/* ------------------------------------------------------------------ */
+/*  getPresenceSessions                                                */
+/* ------------------------------------------------------------------ */
+
+export function getPresenceSessions(userId: string, limitSessions = 50) {
+  const updates = db
+    .select({ status: schema.presenceUpdates.status, updatedAt: schema.presenceUpdates.updatedAt })
+    .from(schema.presenceUpdates)
+    .where(eq(schema.presenceUpdates.userId, userId))
+    .orderBy(asc(schema.presenceUpdates.updatedAt))
+    .all();
+
+  const sessions: { start: Date; end: Date | null; durationMs: number | null }[] = [];
+  let sessionStart: Date | null = null;
+
+  for (const u of updates) {
+    const offline = !u.status || u.status === 'offline';
+    if (!offline && sessionStart === null) {
+      sessionStart = u.updatedAt!;
+    } else if (offline && sessionStart !== null) {
+      const end = u.updatedAt!;
+      sessions.push({ start: sessionStart, end, durationMs: end.getTime() - sessionStart.getTime() });
+      sessionStart = null;
+    }
+  }
+  if (sessionStart !== null) {
+    sessions.push({ start: sessionStart, end: null, durationMs: null });
+  }
+
+  return sessions.reverse().slice(0, limitSessions);
 }

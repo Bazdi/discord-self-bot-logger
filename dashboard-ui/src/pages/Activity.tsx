@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Inbox, Mic, Radio, ShieldAlert, Users } from 'lucide-react';
+import { Clock, Inbox, Mic, Radio, Search, ShieldAlert, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import apiClient from '../api/client';
 import { formatDateTime, type TimestampValue } from '../utils/datetime';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +24,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
-type ActivityTab = "members" | "voice" | "presence" | "audit";
+type ActivityTab = "members" | "voice" | "presence" | "audit" | "sessions";
+
+interface PresenceSession {
+  start: string;
+  end: string | null;
+  durationMs: number | null;
+}
 
 interface MemberEvent {
   id: number;
@@ -95,6 +102,10 @@ export default function Activity() {
   const [presence, setPresence] = useState<PresenceEvent[]>([]);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sessions, setSessions] = useState<PresenceSession[]>([]);
+  const [sessionUserId, setSessionUserId] = useState('');
+  const [sessionUserIdInput, setSessionUserIdInput] = useState('');
+  const [sessionsLoading, setSessionsLoading] = useState(false);
 
   useEffect(() => {
     async function fetchAll() {
@@ -125,6 +136,20 @@ export default function Activity() {
     }
     fetchAll();
   }, []);
+
+  const fetchSessions = async (userId: string) => {
+    if (!userId.trim()) return;
+    setSessionsLoading(true);
+    try {
+      const res = await apiClient.get<PresenceSession[]>(`/activity/presence/sessions?userId=${encodeURIComponent(userId)}&limit=100`);
+      setSessions(res.data);
+      setSessionUserId(userId);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
@@ -160,6 +185,10 @@ export default function Activity() {
             Guild Audit
             {!loading && <CountPill count={audit.length} />}
           </TabsTrigger>
+          <TabsTrigger value="sessions" className="gap-1.5 text-sm">
+            <Clock className="size-3.5" />
+            Sessions
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="members" className="mt-4">
@@ -173,6 +202,16 @@ export default function Activity() {
         </TabsContent>
         <TabsContent value="audit" className="mt-4">
           <AuditTable data={audit} loading={loading} />
+        </TabsContent>
+        <TabsContent value="sessions" className="mt-4">
+          <SessionsPanel
+            sessions={sessions}
+            loading={sessionsLoading}
+            userIdInput={sessionUserIdInput}
+            onUserIdInputChange={setSessionUserIdInput}
+            onSearch={() => fetchSessions(sessionUserIdInput)}
+            activeUserId={sessionUserId}
+          />
         </TabsContent>
       </Tabs>
     </div>
@@ -653,6 +692,109 @@ function AuditTable({
                   </TableCell>
                   <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                     {formatDateTime(row.createdAt)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Sessions Panel ──────────────────────────────────────────────────────────
+
+function formatSessionDuration(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function SessionsPanel({
+  sessions,
+  loading,
+  userIdInput,
+  onUserIdInputChange,
+  onSearch,
+  activeUserId,
+}: {
+  sessions: PresenceSession[];
+  loading: boolean;
+  userIdInput: string;
+  onUserIdInputChange: (v: string) => void;
+  onSearch: () => void;
+  activeUserId: string;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Presence Sessions</CardTitle>
+        <CardDescription>Online/offline session history for a specific user.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="User ID..."
+            value={userIdInput}
+            onChange={(e) => onUserIdInputChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') onSearch(); }}
+            className="max-w-xs"
+          />
+          <button
+            onClick={onSearch}
+            disabled={loading || !userIdInput.trim()}
+            className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-muted disabled:opacity-50 transition-colors"
+          >
+            <Search className="size-3.5" />
+            Search
+          </button>
+        </div>
+
+        {!activeUserId && (
+          <div className="flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed text-center">
+            <Clock className="size-8 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">Enter a user ID to view their presence sessions.</p>
+          </div>
+        )}
+
+        {activeUserId && loading && <TableSkeleton cols={3} />}
+
+        {activeUserId && !loading && sessions.length === 0 && (
+          <div className="px-2">
+            <EmptyState message="No presence sessions found for this user." />
+          </div>
+        )}
+
+        {activeUserId && !loading && sessions.length > 0 && (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Start</TableHead>
+                <TableHead>End</TableHead>
+                <TableHead>Duration</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sessions.map((s, i) => (
+                <TableRow key={i}>
+                  <TableCell className="text-xs tabular-nums text-muted-foreground">
+                    {new Date(s.start).toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-xs tabular-nums text-muted-foreground">
+                    {s.end ? (
+                      new Date(s.end).toLocaleString()
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-emerald-400">
+                        <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                        Still online
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {s.durationMs != null ? formatSessionDuration(s.durationMs) : '—'}
                   </TableCell>
                 </TableRow>
               ))}

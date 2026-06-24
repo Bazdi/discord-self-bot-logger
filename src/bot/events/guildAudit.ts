@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { logger } from '@/utils/logger.js';
 import { requireGuild } from '../guildFilter.js';
 import { broadcaster } from '@/dashboard/socket/broadcaster.js';
+import { config } from '@/config/loader.js';
 
 async function onChannelCreate(client: Client, channel: Channel) {
   try {
@@ -86,6 +87,10 @@ async function onChannelUpdate(client: Client, oldChannel: Channel, newChannel: 
     if (oc.parentId !== nc.parentId) changes.parentId = { old: oc.parentId, new: nc.parentId };
 
     if (Object.keys(changes).length === 0) return;
+
+    // Skip audit entry if a channel watchlist is configured and this channel isn't in it
+    const watchChannels = config.logging?.watchChannels ?? [];
+    if (watchChannels.length > 0 && !watchChannels.includes(nc.id)) return;
 
     db.insert(guildAudit).values({
       guildId,

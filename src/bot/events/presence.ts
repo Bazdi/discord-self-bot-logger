@@ -73,6 +73,10 @@ export function handlePresenceUpdate(
   const allowedGuilds = config.logging?.guilds ?? [];
   if (allowedGuilds.length > 0 && guildId && !allowedGuilds.includes(guildId)) return;
 
+  // Filter to watched users if a watchlist is configured
+  const watchUsers = config.logging?.watchUsers ?? [];
+  if (watchUsers.length > 0 && !watchUsers.includes(userId)) return;
+
   if (newPresence.user) {
     enrichUser({
       id: newPresence.user.id,

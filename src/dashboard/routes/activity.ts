@@ -5,6 +5,7 @@ import {
   getVoiceEvents,
   getPresenceUpdates,
   getGuildAudit,
+  getPresenceSessions,
 } from '@/database/queries.js';
 import { logger } from '@/utils/logger.js';
 
@@ -84,6 +85,21 @@ router.get('/audit', async (req, res, next) => {
     const query = auditQuery.parse(req.query);
     const events = getGuildAudit(query.guild, query.action, query.user, query.limit);
     res.json(events);
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      res.status(400).json({ error: err.errors });
+      return;
+    }
+    next(err);
+  }
+});
+
+router.get('/presence/sessions', async (req, res, next) => {
+  try {
+    const userId = z.string().parse(req.query.userId);
+    const limit = z.coerce.number().min(1).max(200).default(50).parse(req.query.limit);
+    const sessions = getPresenceSessions(userId, limit);
+    res.json(sessions);
   } catch (err) {
     if (err instanceof z.ZodError) {
       res.status(400).json({ error: err.errors });

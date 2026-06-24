@@ -49,6 +49,12 @@ export const configSchema = z.object({
       maxSubscriptionUsers: z.number().int().min(1).default(300),
     }).default({}),
 
+    /** User IDs to watch for presence (empty = log all users in tracked guilds) */
+    watchUsers: z.array(z.string()).default([]),
+
+    /** Channel IDs to watch for changes (empty = log all channels in tracked guilds) */
+    watchChannels: z.array(z.string()).default([]),
+
     /** Attachment download & compression (image/* only) */
     attachments: z.object({
       enabled: z.boolean().default(true),
