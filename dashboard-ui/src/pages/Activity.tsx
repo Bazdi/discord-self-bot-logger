@@ -145,9 +145,9 @@ export default function Activity() {
       // If it doesn't look like a snowflake ID, search by username first
       if (!/^\d{15,20}$/.test(userId)) {
         try {
-          const searchRes = await apiClient.get<{ data: { id: string }[] }>(`/users?search=${encodeURIComponent(userId)}&limit=1`);
+          const searchRes = await apiClient.get<{ data: { userId: string }[] }>(`/users?search=${encodeURIComponent(userId)}&limit=1`);
           const found = searchRes.data?.data?.[0];
-          if (found) userId = found.id;
+          if (found) userId = found.userId;
           else { setSessions([]); setSessionUserId(input.trim()); return; }
         } catch {
           setSessions([]); setSessionUserId(input.trim()); return;
