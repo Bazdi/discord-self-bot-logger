@@ -144,10 +144,14 @@ export default function Activity() {
       let userId = input.trim();
       // If it doesn't look like a snowflake ID, search by username first
       if (!/^\d{15,20}$/.test(userId)) {
-        const searchRes = await apiClient.get<{ data: { id: string }[] }>(`/users?search=${encodeURIComponent(userId)}&limit=1`);
-        const found = searchRes.data?.data?.[0];
-        if (!found) { setSessions([]); setSessionUserId(userId); return; }
-        userId = found.id;
+        try {
+          const searchRes = await apiClient.get<{ data: { id: string }[] }>(`/users?search=${encodeURIComponent(userId)}&limit=1`);
+          const found = searchRes.data?.data?.[0];
+          if (found) userId = found.id;
+          else { setSessions([]); setSessionUserId(input.trim()); return; }
+        } catch {
+          setSessions([]); setSessionUserId(input.trim()); return;
+        }
       }
       const res = await apiClient.get<PresenceSession[]>(`/activity/presence/sessions?userId=${encodeURIComponent(userId)}&limit=100`);
       setSessions(res.data);
