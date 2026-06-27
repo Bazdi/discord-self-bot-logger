@@ -104,8 +104,10 @@ export default function Activity() {
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<PresenceSession[]>([]);
   const [sessionUserId, setSessionUserId] = useState('');
+  const [sessionUsername, setSessionUsername] = useState('');
   const [sessionUserIdInput, setSessionUserIdInput] = useState('');
   const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [presenceHistory, setPresenceHistory] = useState<PresenceEvent[]>([]);
 
   useEffect(() => {
     async function fetchAll() {
@@ -142,20 +144,25 @@ export default function Activity() {
     setSessionsLoading(true);
     try {
       let userId = input.trim();
-      // If it doesn't look like a snowflake ID, search by username first
+      let resolvedUsername = '';
       if (!/^\d{15,20}$/.test(userId)) {
         try {
-          const searchRes = await apiClient.get<{ data: { userId: string }[] }>(`/users?search=${encodeURIComponent(userId)}&limit=1`);
+          const searchRes = await apiClient.get<{ data: { userId: string; username: string }[] }>(`/users?search=${encodeURIComponent(userId)}&limit=1`);
           const found = searchRes.data?.data?.[0];
-          if (found) userId = found.userId;
-          else { setSessions([]); setSessionUserId(input.trim()); return; }
+          if (found) { userId = found.userId; resolvedUsername = found.username; }
+          else { setSessions([]); setPresenceHistory([]); setSessionUserId(input.trim()); return; }
         } catch {
-          setSessions([]); setSessionUserId(input.trim()); return;
+          setSessions([]); setPresenceHistory([]); setSessionUserId(input.trim()); return;
         }
       }
-      const res = await apiClient.get<PresenceSession[]>(`/activity/presence/sessions?userId=${encodeURIComponent(userId)}&limit=100`);
-      setSessions(res.data);
+      const [sessRes, histRes] = await Promise.all([
+        apiClient.get<PresenceSession[]>(`/activity/presence/sessions?userId=${encodeURIComponent(userId)}&limit=100`),
+        apiClient.get<PresenceEvent[]>(`/activity/presence?user=${encodeURIComponent(userId)}&limit=200`),
+      ]);
+      setSessions(sessRes.data);
+      setPresenceHistory(histRes.data);
       setSessionUserId(userId);
+      setSessionUsername(resolvedUsername || input.trim());
     } catch (err) {
       console.error(err);
     } finally {
@@ -218,11 +225,13 @@ export default function Activity() {
         <TabsContent value="sessions" className="mt-4">
           <SessionsPanel
             sessions={sessions}
+            presenceHistory={presenceHistory}
             loading={sessionsLoading}
             userIdInput={sessionUserIdInput}
             onUserIdInputChange={setSessionUserIdInput}
             onSearch={() => fetchSessions(sessionUserIdInput)}
             activeUserId={sessionUserId}
+            activeUsername={sessionUsername}
           />
         </TabsContent>
       </Tabs>
@@ -727,18 +736,22 @@ function formatSessionDuration(ms: number): string {
 
 function SessionsPanel({
   sessions,
+  presenceHistory,
   loading,
   userIdInput,
   onUserIdInputChange,
   onSearch,
   activeUserId,
+  activeUsername,
 }: {
   sessions: PresenceSession[];
+  presenceHistory: PresenceEvent[];
   loading: boolean;
   userIdInput: string;
   onUserIdInputChange: (v: string) => void;
   onSearch: () => void;
   activeUserId: string;
+  activeUsername: string;
 }) {
   return (
     <Card>
@@ -812,6 +825,51 @@ function SessionsPanel({
               ))}
             </TableBody>
           </Table>
+        )}
+
+        {activeUserId && !loading && presenceHistory.length > 0 && (
+          <>
+            <div className="pt-2 pb-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Status History{activeUsername ? ` — @${activeUsername}` : ''}
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Clients</TableHead>
+                  <TableHead className="text-right">Time</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {presenceHistory.map((row) => {
+                  let clients: Record<string, string> = {};
+                  try { clients = JSON.parse(row.clientStatus ?? '{}'); } catch { /* ignore */ }
+                  const clientLabels = Object.entries(clients).map(([platform, s]) => (
+                    <span key={platform} className="inline-flex items-center gap-1 mr-1.5">
+                      <span className="capitalize text-muted-foreground">{platform}</span>
+                      <StatusDot status={s} />
+                    </span>
+                  ));
+                  return (
+                    <TableRow key={row.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <StatusDot status={row.status} />
+                          <span className="text-sm capitalize">{row.status ?? 'offline'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {clientLabels.length > 0 ? clientLabels : <span className="text-muted-foreground/40">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right text-xs tabular-nums text-muted-foreground">
+                        {formatDateTime(row.updatedAt)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </>
         )}
       </CardContent>
     </Card>
