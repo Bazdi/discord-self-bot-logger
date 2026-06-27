@@ -6,10 +6,11 @@ import {
   Calendar,
   Hash,
   Activity,
+  Clock,
 } from 'lucide-react';
 import apiClient from '../api/client';
 import { MessageCard } from '../components/MessageCard';
-import { formatDate, type TimestampValue } from '../utils/datetime';
+import { formatDate, formatDateTime, type TimestampValue } from '../utils/datetime';
 
 interface UserProfileData {
   id: string;
@@ -49,11 +50,28 @@ interface UserMessage {
   } | null;
 }
 
+interface PresenceSession {
+  start: string;
+  end: string | null;
+  durationMs: number | null;
+}
+
+function formatSessionDuration(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m`;
+  return `<1m`;
+}
+
 export default function UserProfile() {
   const { id } = useParams<{ id: string }>();
   const [user, setUser] = useState<UserProfileData | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [messages, setMessages] = useState<UserMessage[]>([]);
+  const [sessions, setSessions] = useState<PresenceSession[]>([]);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'messages' | 'activity'>('messages');
 
@@ -77,6 +95,13 @@ export default function UserProfile() {
     }
     fetchData();
   }, [id]);
+
+  useEffect(() => {
+    if (activeTab !== 'activity' || !id || sessionsLoaded) return;
+    apiClient.get<PresenceSession[]>(`/activity/presence/sessions?userId=${id}&limit=100`)
+      .then((r) => { setSessions(r.data); setSessionsLoaded(true); })
+      .catch(() => setSessionsLoaded(true));
+  }, [activeTab, id, sessionsLoaded]);
 
   if (loading) {
     return (
@@ -174,8 +199,51 @@ export default function UserProfile() {
       )}
 
       {activeTab === 'activity' && (
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="text-sm text-muted-foreground">Activity timeline coming soon.</div>
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-border flex items-center gap-2">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Presence Sessions</span>
+            {sessionsLoaded && (
+              <span className="ml-auto text-xs text-muted-foreground">{sessions.length} session{sessions.length !== 1 ? 's' : ''}</span>
+            )}
+          </div>
+          {!sessionsLoaded ? (
+            <div className="p-6 text-sm text-muted-foreground">Loading...</div>
+          ) : sessions.length === 0 ? (
+            <div className="p-6 text-sm text-muted-foreground">No presence sessions recorded.</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs text-muted-foreground">
+                  <th className="px-4 py-2 text-left font-medium">Start</th>
+                  <th className="px-4 py-2 text-left font-medium">End</th>
+                  <th className="px-4 py-2 text-left font-medium">Duration</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sessions.map((s, i) => (
+                  <tr key={i} className="border-b border-border/50 last:border-0 hover:bg-muted/30">
+                    <td className="px-4 py-2.5 tabular-nums text-xs text-muted-foreground">
+                      {formatDateTime(s.start)}
+                    </td>
+                    <td className="px-4 py-2.5 tabular-nums text-xs">
+                      {s.end ? (
+                        <span className="text-muted-foreground">{formatDateTime(s.end)}</span>
+                      ) : (
+                        <span className="flex items-center gap-1.5 text-emerald-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                          Online now
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {s.durationMs != null ? formatSessionDuration(s.durationMs) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
     </div>

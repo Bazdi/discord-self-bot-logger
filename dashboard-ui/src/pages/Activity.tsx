@@ -137,10 +137,18 @@ export default function Activity() {
     fetchAll();
   }, []);
 
-  const fetchSessions = async (userId: string) => {
-    if (!userId.trim()) return;
+  const fetchSessions = async (input: string) => {
+    if (!input.trim()) return;
     setSessionsLoading(true);
     try {
+      let userId = input.trim();
+      // If it doesn't look like a snowflake ID, search by username first
+      if (!/^\d{15,20}$/.test(userId)) {
+        const searchRes = await apiClient.get<{ data: { id: string }[] }>(`/users?search=${encodeURIComponent(userId)}&limit=1`);
+        const found = searchRes.data?.data?.[0];
+        if (!found) { setSessions([]); setSessionUserId(userId); return; }
+        userId = found.id;
+      }
       const res = await apiClient.get<PresenceSession[]>(`/activity/presence/sessions?userId=${encodeURIComponent(userId)}&limit=100`);
       setSessions(res.data);
       setSessionUserId(userId);
@@ -737,7 +745,7 @@ function SessionsPanel({
       <CardContent className="space-y-4">
         <div className="flex items-center gap-2">
           <Input
-            placeholder="User ID..."
+            placeholder="Username or User ID..."
             value={userIdInput}
             onChange={(e) => onUserIdInputChange(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') onSearch(); }}
@@ -756,7 +764,7 @@ function SessionsPanel({
         {!activeUserId && (
           <div className="flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed text-center">
             <Clock className="size-8 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">Enter a user ID to view their presence sessions.</p>
+            <p className="text-sm text-muted-foreground">Enter a username or user ID to view their presence sessions.</p>
           </div>
         )}
 
